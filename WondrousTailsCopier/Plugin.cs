@@ -86,10 +86,20 @@ public sealed class Plugin : IDalamudPlugin
         {
             ToClipboard("list");
         }
+        else if (args == "needed")
+        {
+            RemainingObjectives();
+        }
         else
         {
             ToggleMainUI();
         }
+    }
+    public void RemainingObjectives()
+    {
+        var wtData = GetWTNames(forceTrue: "listNumNeeded");
+        var numNeeded = wtData.Substring(wtData.Length - 1);
+        Chat.Print($"You need {numNeeded} objective{(int.Parse(numNeeded) == 1 ? "" : "s")} to finish your Wondrous Tails book.");
     }
     public void ToClipboard(string displayType = "copy")
     {
@@ -107,8 +117,25 @@ public sealed class Plugin : IDalamudPlugin
     {
         return PlayerState.Instance()->HasWeeklyBingoJournal;
     }
-    public unsafe string GetWTNames(string displayType = "copy")
+    public unsafe string GetWTNames(string displayType = "copy", string forceTrue = "")
     {
+        bool reducedTextBool = Configuration.ReducedTextBool;
+        bool excludeCompletedBool = Configuration.ExcludeCompletedBool;
+        bool listNumNeededBool = Configuration.ListNumNeededBool;
+
+        if (forceTrue.Contains("reducedText"))
+        {
+            reducedTextBool = true;
+        }
+        else if (forceTrue.Contains("excludeCompleted"))
+        {
+            excludeCompletedBool = true;
+        }
+        else if (forceTrue.Contains("listNumNeeded"))
+        {
+            listNumNeededBool = true;
+        }
+
         if (!HasWT())
         {
             Chat.Print("How'd you get here without having a Wondrous Tails book??");
@@ -126,7 +153,7 @@ public sealed class Plugin : IDalamudPlugin
             if (bingoState != PlayerState.WeeklyBingoTaskStatus.Open)
             {
                 numCompleted++;
-                if (Configuration.ExcludeCompletedBool)
+                if (excludeCompletedBool)
                 {
                     continue;
                 }
@@ -149,7 +176,7 @@ public sealed class Plugin : IDalamudPlugin
                 dutyLocation = bingoOrderData.Text.Value.Description;
             }
 
-            if (Configuration.ReducedTextBool)
+            if (reducedTextBool)
             {
                 if (dutyLocation.Contains("Dungeons "))
                 {
@@ -237,7 +264,7 @@ public sealed class Plugin : IDalamudPlugin
             }
 
         }
-        if (Configuration.ListNumNeededBool && displayType == "copy")
+        if (listNumNeededBool && displayType == "copy")
         {
             tasksInWT += $"need {9 - numCompleted}, ";
         }

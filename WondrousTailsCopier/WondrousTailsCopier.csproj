@@ -5,7 +5,7 @@
   <PropertyGroup>
     <Version>0.0.0.4</Version>
     <Description>Copy your Wondrous Tails objectives to the clipboard!</Description>
-    <PackageProjectUrl>https://github.com/goatcorp/WondrousTailsCopier</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/zettiverse/WondrousTailsCopier</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
   </PropertyGroup>

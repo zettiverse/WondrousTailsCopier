@@ -15,7 +15,7 @@ using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using WondrousTailsCopier.Windows;
 
 namespace WondrousTailsCopier;
@@ -146,7 +146,7 @@ public sealed class Plugin : IDalamudPlugin
         foreach (var index in Enumerable.Range(0, 16))
         {
             var taskId = PlayerState.Instance()->WeeklyBingoOrderData[index];
-            var bingoOrderData = DataManager.GetExcelSheet<WeeklyBingoOrderData>()!.GetRow(taskId);
+            var bingoOrderData = DataManager.GetExcelSheet<WeeklyBingoOrderData>().GetRow(taskId);
 
             var bingoState = PlayerState.Instance()->GetWeeklyBingoTaskStatus(index);
 
@@ -163,24 +163,24 @@ public sealed class Plugin : IDalamudPlugin
             if (bingoOrderData.Type == 0)
             {
                 var duty = DataManager.GetExcelSheet<ContentFinderCondition>()!
-                    .Where(c => c.Content == bingoOrderData.Data)
+                    .Where(c => c.Content.RowId == bingoOrderData.Data.RowId)
                     .OrderBy(row => row.SortKey)
-                    .Select(c => c.TerritoryType.Row)
+                    .Select(c => c.TerritoryType.RowId)
                     .ToList().FirstOrDefault();
                 var territoryType = DataManager.GetExcelSheet<TerritoryType>()!.GetRow(duty);
                 var cfc = territoryType.ContentFinderCondition.Value;
-                dutyLocation = cfc?.Name;
+                dutyLocation = cfc.Name.ToString();
             }
             else
             {
-                dutyLocation = bingoOrderData.Text.Value.Description;
+                dutyLocation = bingoOrderData.Text.Value.Description.ToString();
             }
 
             if (reducedTextBool)
             {
                 if (dutyLocation.Contains("Dungeons "))
                 {
-                    var pattern = @"Dungeons \(Lv\. (\d+-?)";
+                    var pattern = @"Dungeons \(Lv\. (\d+-\d+|\d+)";
                     var r = new Regex(pattern);
                     var m = r.Match(dutyLocation);
                     dutyLocation = m.Groups[1].Value;

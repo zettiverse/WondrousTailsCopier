@@ -76,10 +76,18 @@ public class MainWindow : Window, IDisposable
             {
                 Plugin.ToClipboard();
             }
+            if (ImGui.Button("Book Club!"))
+            {
+                Plugin.ToggleComparisonUI();
+            }
         }
         else
         {
             ImGui.Text("Get a Book!");
+            if (ImGui.Button("Book Club!"))
+            {
+                Plugin.ToggleComparisonUI();
+            }
         }
     }
 }

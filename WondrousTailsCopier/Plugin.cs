@@ -17,6 +17,7 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using ImGuiNET;
 using Lumina.Excel.Sheets;
 using WondrousTailsCopier.Windows;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 
 namespace WondrousTailsCopier;
 
@@ -33,7 +34,7 @@ public sealed class Plugin : IDalamudPlugin
     public Configuration Configuration { get; init; }
 
     public readonly WindowSystem WindowSystem = new("WondrousTailsCopier");
-    // private ConfigWindow ConfigWindow { get; init; }
+    private ComparisonWindow ComparisonWindow { get; init; }
     private MainWindow MainWindow { get; init; }
 
     public Plugin()
@@ -43,10 +44,10 @@ public sealed class Plugin : IDalamudPlugin
         // you might normally want to embed resources and load them from the manifest stream
         // var goatImagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
 
-        // ConfigWindow = new ConfigWindow(this);
+        ComparisonWindow = new ComparisonWindow(this);
         MainWindow = new MainWindow(this);
 
-        // WindowSystem.AddWindow(ConfigWindow);
+        WindowSystem.AddWindow(ComparisonWindow);
         WindowSystem.AddWindow(MainWindow);
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
@@ -69,7 +70,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         WindowSystem.RemoveAllWindows();
 
-        // ConfigWindow.Dispose();
+        ComparisonWindow.Dispose();
         MainWindow.Dispose();
 
         CommandManager.RemoveHandler(CommandName);
@@ -92,9 +93,24 @@ public sealed class Plugin : IDalamudPlugin
         }
         else
         {
+            //OhGod();
             ToggleMainUI();
         }
     }
+
+    private void OhGod()
+    {
+        var territories = DataManager.GetExcelSheet<ContentFinderCondition>()!
+            .Where(r => r.ContentType.Value.RowId == 4)
+            .Select(r => r.TerritoryType.Value)
+            .ToHashSet();
+
+        foreach (var territory in territories)
+        {
+            Chat.Print(territory.ContentFinderCondition.Value.Name.ToString());
+        }
+    }
+
     public void RemainingObjectives()
     {
         var wtData = GetWTNames(forceTrue: "listNumNeeded");
@@ -221,6 +237,13 @@ public sealed class Plugin : IDalamudPlugin
                     var m = r.Match(dutyLocation);
                     dutyLocation = m.Groups[1].Value;
                 }
+                else if (dutyLocation.Contains("-heavyweight"))
+                {
+                    var pattern = @"(AAC) \w+-heavyweight (.*)";
+                    var r = new Regex(pattern);
+                    var m = r.Match(dutyLocation);
+                    dutyLocation = $"{m.Groups[1].Value} {m.Groups[2].Value}";
+                }
                 else if (dutyLocation.Contains("Extreme"))
                 {
                     var pattern = @"(?:the )?(.*) \(Extreme\)";
@@ -274,6 +297,6 @@ public sealed class Plugin : IDalamudPlugin
 
     private void DrawUI() => WindowSystem.Draw();
 
-    // public void ToggleConfigUI() => ConfigWindow.Toggle();
+    public void ToggleComparisonUI() => ComparisonWindow.Toggle();
     public void ToggleMainUI() => MainWindow.Toggle();
 }

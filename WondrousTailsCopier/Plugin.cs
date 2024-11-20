@@ -289,6 +289,10 @@ public sealed class Plugin : IDalamudPlugin
         {
             dutyList = dutyList.Select(ReduceWTDutyName).ToList();
         }
+        if (listNumNeeded)
+        {
+            dutyList.Add("need {numNeeded}");
+        }
 
         foreach (var dutyLocation in dutyList)
         {
@@ -301,10 +305,6 @@ public sealed class Plugin : IDalamudPlugin
                 tasksInWT += $"{dutyLocation} \n";
             }
 
-        }
-        if (listNumNeeded && displayType == "copy")
-        {
-            tasksInWT += $"need {numNeeded}, ";
         }
         return tasksInWT.Substring(0, tasksInWT.Length - 2);
 

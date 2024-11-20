@@ -52,7 +52,7 @@ public class MainWindow : Window, IDisposable
 
         if (Plugin.HasWT())
         {
-            ImGui.Text(Plugin.GetWTNames("list"));
+            ImGui.Text(Plugin.GetWTNames("\n"));
             ImGui.Spacing();
 
             if (ImGui.Checkbox("Use Reduced Text", ref reducedTextValue))
@@ -74,7 +74,7 @@ public class MainWindow : Window, IDisposable
             }
             if (ImGui.Button("Copy to Clipboard"))
             {
-                Plugin.ToClipboard();
+                Plugin.ToClipboard(", ");
             }
             if (ImGui.Button("Book Club!"))
             {

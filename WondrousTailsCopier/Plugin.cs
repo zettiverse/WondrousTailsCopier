@@ -82,11 +82,11 @@ public sealed class Plugin : IDalamudPlugin
         // in response to the slash command, just toggle the display status of our main ui
         if (args == "copy")
         {
-            ToClipboard();
+            ToClipboard(", ");
         }
         else if (args == "copy list")
         {
-            ToClipboard("list");
+            ToClipboard("\n");
         }
         else if (args == "needed")
         {
@@ -241,11 +241,11 @@ public sealed class Plugin : IDalamudPlugin
         GetWTDutyList(false, out var numNeeded);
         Chat.Print($"You need {numNeeded} objective{(numNeeded == 1 ? "" : "s")} to finish your Wondrous Tails book.");
     }
-    public void ToClipboard(string displayType = "copy")
+    public void ToClipboard(string separator)
     {
         if (HasWT())
         {
-            ImGui.SetClipboardText(GetWTNames(displayType));
+            ImGui.SetClipboardText(GetWTNames(separator));
             Chat.Print("Wondrous Tails objectives copied to clipboard.");
         }
         else
@@ -257,7 +257,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         return PlayerState.Instance()->HasWeeklyBingoJournal;
     }
-    public string GetWTNames(string displayType = "copy")
+    public string GetWTNames(string separator)
     {
         bool reducedText = Configuration.ReducedTextBool;
         bool excludeCompleted = Configuration.ExcludeCompletedBool;
@@ -278,7 +278,7 @@ public sealed class Plugin : IDalamudPlugin
         {
             dutyList.Add("need {numNeeded}");
         }
-        return string.Join(displayType == "copy" ? ", " : "\n", dutyList);
+        return string.Join(separator, dutyList);
     }
 
     private void DrawUI() => WindowSystem.Draw();

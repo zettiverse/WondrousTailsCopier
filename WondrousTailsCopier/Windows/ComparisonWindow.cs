@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
+using Dalamud.Hooking;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Internal;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
@@ -17,6 +19,7 @@ using FFXIVClientStructs.FFXIV.Common.Lua;
 using ImGuiNET;
 using Lumina.Excel.Sheets;
 using static Dalamud.Interface.Utility.Raii.ImRaii;
+using static FFXIVClientStructs.FFXIV.Client.LayoutEngine.ILayoutInstance;
 using static FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentLookingForGroup;
 
 namespace WondrousTailsCopier.Windows;
@@ -80,20 +83,130 @@ public class ComparisonWindow : Window, IDisposable
 
         return trials;
     }
+    private void RestoreOriginalNeeded()
+    {
+        var allBooks = Configuration.AllBooks;
 
+        for (var i = 0; i < allBooks.Count; i++)
+        {            
+            foreach (var book in allBooks[i])
+            {
+                var pattern = @"need (\d)$";
+                var r = new Regex(pattern);
+                var m = r.Match(book.Value.Item1);
+                if (m.Success)
+                {
+                    var bookValues = book.Value;
+                    bookValues.Item2 = int.Parse(m.Groups[1].Value);
+                    allBooks[i][book.Key] = bookValues;
+                }
+            }
+        }
+        Configuration.Save();
+    }
+    private void ResetCompleted()
+    {
+        Configuration.CompletedObjectives = [];
+        RestoreOriginalNeeded();
+        Configuration.Save();
+    }
+    private void ResetAll()
+    {
+        Configuration.AllBooks = [];
+        Configuration.AllObjectives = [];
+        ResetCompleted();
+        Configuration.Save();
+        Redraw();
+    }
     private string PadNumbers(string input)
     {
         return Regex.Replace(input, "^[0-9]+", match => match.Value.PadLeft(10, '0'));
     }
-    private void DrawLine(Vector2 min, Vector2 max)
+    private void RemoveLines(string objectiveName)
     {
-        ImGui.GetWindowDrawList().AddLine(min, max, 0xFFFFFFFF, 4.0f);
-        //Toggle();
-        Plugin.Chat.Print("LOL");
+        var completedObjectives = Configuration.CompletedObjectives;
+        if (completedObjectives.ContainsKey(objectiveName))
+        {
+            if (completedObjectives[objectiveName] - 1 >= 0)
+            {
+                completedObjectives[objectiveName]--;
+            }
+        }
+        Configuration.CompletedObjectives = completedObjectives;
+        Configuration.Save();
+    }
+    private void AddLines(string objectiveName)
+    {
+        var completedObjectives = Configuration.CompletedObjectives;
+        if (completedObjectives.ContainsKey(objectiveName))
+        {
+            completedObjectives[objectiveName]++;
+        }
+        else
+        {
+            completedObjectives.Add(objectiveName, 1);
+        }
+        Configuration.CompletedObjectives = completedObjectives;
+        Configuration.Save();
+    }
+    private void DrawLines(Vector2 min, Vector2 max, int count)
+    {
+        if (count == 0)
+        {
+            return;
+        }
+
+        var increments = (max.Y - min.Y) / (count + 1);
+        var thickness = 3.0f;
+
+        if (count >= 4)
+        {
+            thickness = 1.5f;
+        }
+
+        for (var i = 0; i < count; i++)
+        {
+            min.Y += increments;
+            max.Y = min.Y;
+            ImGui.GetWindowDrawList().AddLine(min, max, 0xFFFFFFFF, thickness);
+        }
+    }
+    private void AddNeededViaObjective(string[] ids)
+    {
+        var allBooks = Configuration.AllBooks;
+        foreach (var id in ids) {
+            foreach (var book in allBooks[int.Parse(id)])
+            {
+                var bookValues = book.Value;
+                if (bookValues.Item2 + 1 < 10)
+                {
+                    bookValues.Item2++;
+                }
+                allBooks[int.Parse(id)][book.Key] = bookValues;
+            }
+        }
+        Configuration.Save();
+    }
+    private void SubtractNeededViaObjective(string[] ids)
+    {
+        var allBooks = Configuration.AllBooks;
+        foreach (var id in ids) {
+            foreach (var book in allBooks[int.Parse(id)])
+            {
+                var bookValues = book.Value;
+                if (bookValues.Item2 - 1 > 0)
+                {
+                    bookValues.Item2--;
+                }
+                allBooks[int.Parse(id)][book.Key] = bookValues;
+            }
+        }
+        Configuration.Save();
     }
     private void DisplayObjectives(List<Dictionary<string, string>> categorizedObjectives)
     {
         var allBooks = Configuration.AllBooks;
+        var completedObjectives = Configuration.CompletedObjectives;
 
         for (var i = 0; i < allBooks.Count; i++)
         {
@@ -141,18 +254,16 @@ public class ComparisonWindow : Window, IDisposable
             {
                 var ids = objective.Value.Split(',');
 
-                //ImGui.PushID(i);
                 if (ImGui.Button($"{objective.Key}"))
                 {
-                    var lineMin = ImGui.GetItemRectMin();
-                    var lineMax = ImGui.GetItemRectMax();
-                    Plugin.Chat.Print($"{lineMin.X.ToString()}, {lineMin.Y.ToString()} // {lineMax.X.ToString()}, {lineMax.Y.ToString()}");
-                    lineMin.Y = (lineMax.Y - lineMin.Y) / 2;
-                    lineMax.Y = lineMin.Y;
-                    Plugin.Chat.Print($"{lineMin.X.ToString()}, {lineMin.Y.ToString()} // {lineMax.X.ToString()}, {lineMax.Y.ToString()}");
-                    ImGui.GetWindowDrawList().AddLine(lineMin, lineMax, 0xFFFFFFFF, 4.0f);
-                    //DrawLine(lineMin, lineMax);
+                    AddLines(objective.Key);
+                    SubtractNeededViaObjective(ids);
+                }
 
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && completedObjectives[objective.Key] - 1 >= 0)
+                {
+                    RemoveLines(objective.Key);
+                    AddNeededViaObjective(ids);
                 }
 
                 var min = ImGui.GetItemRectMin();
@@ -165,6 +276,15 @@ public class ComparisonWindow : Window, IDisposable
                     //min.X += 6.0f;
                     //Plugin.Chat.Print($"{min.X.ToString()}, {min.Y.ToString()} // {max.X.ToString()}, {max.Y.ToString()}");
                     min.X += ((max.X - min.X) / ids.Length);
+                }
+
+                if (completedObjectives.ContainsKey(objective.Key))
+                {
+                    var lineMin = ImGui.GetItemRectMin();
+                    var lineMax = ImGui.GetItemRectMax();
+                    var timesCompleted = completedObjectives[objective.Key];
+
+                    DrawLines(lineMin, lineMax, timesCompleted);
                 }
                 //ImGui.PopID();
                 ImGui.SameLine();
@@ -284,9 +404,10 @@ public class ComparisonWindow : Window, IDisposable
     {
         var allBooks = Configuration.AllBooks;
 
-        var pattern = @"(\[\d+:\d+\]\[\w+\d\]|\[\d+:\d+\]|\[\w+\d\])(\(\W?(\w+ \w+)\) |<\W?(\w+ \w+)> )(.*), need (\d)|(.*), need (\d)";
+        var pattern = @"(\[\d+:\d+\]\[\w+\d\]|\[\d+:\d+\]|\[\w+\d\])(\(\W?(\w+ \w+)\) |<\W?(\w+ \w+)> )((.*), need (\d))|((.*), need (\d))";
+        //var pattern = @"(\[\d+:\d+\]\[\w+\d\]|\[\d+:\d+\]|\[\w+\d\])(\(\W?(\w+ \w+)\) |<\W?(\w+ \w+)> )(.*), need (\d)|(.*), need (\d)";
         var clipboardContents = ImGui.GetClipboardText().Trim();
-        Plugin.Chat.Print(clipboardContents);
+        //Plugin.Chat.Print(clipboardContents);
         var r = new Regex(pattern);
         var m = r.Match(clipboardContents);
 
@@ -301,8 +422,9 @@ public class ComparisonWindow : Window, IDisposable
             if (m.Groups[3].Value.Length == 0 && m.Groups[4].Value.Length == 0)
             {
                 playerName = Plugin.GetLocalPlayerName();
-                playerObjectives = m.Groups[7].Value;
-                playerNeeded = int.Parse(m.Groups[8].Value);
+                playerObjectives = m.Groups[8].Value;
+                playerNeeded = int.Parse(m.Groups[10].Value);
+                //playerNeeded = int.Parse(m.Groups[8].Value);
             }
             else
             {
@@ -316,7 +438,8 @@ public class ComparisonWindow : Window, IDisposable
                 }
 
                 playerObjectives = m.Groups[5].Value;
-                playerNeeded = int.Parse(m.Groups[6].Value);
+                playerNeeded = int.Parse(m.Groups[7].Value);
+                //playerNeeded = int.Parse(m.Groups[6].Value);
             }
 
 
@@ -343,7 +466,7 @@ public class ComparisonWindow : Window, IDisposable
         }
         else
         {
-            Plugin.Chat.Print("Nope");
+            Plugin.Chat.Print("Could not correctly parse contents of clipboard.");
         }
     }
 
@@ -371,10 +494,12 @@ public class ComparisonWindow : Window, IDisposable
         ImGui.SameLine();
         if (ImGui.Button("Remove All"))
         {
-            Configuration.AllBooks = [];
-            Configuration.AllObjectives = [];
-            Configuration.Save();
-            Redraw();
+            ResetAll();
+        }
+        ImGui.SameLine();
+        if (ImGui.Button("Reset Needed"))
+        {
+            ResetCompleted();
         }
 
         if (allBooks != null)
@@ -383,10 +508,7 @@ public class ComparisonWindow : Window, IDisposable
         }
         else
         {
-            Configuration.AllBooks = [];
-            Configuration.AllObjectives = [];
-            Configuration.Save();
-            Redraw();
+            ResetAll();
         }
 
 

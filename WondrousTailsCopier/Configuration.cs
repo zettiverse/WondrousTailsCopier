@@ -2,6 +2,7 @@ using Dalamud.Configuration;
 using Dalamud.Plugin;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace WondrousTailsCopier;
 
@@ -18,6 +19,7 @@ public class Configuration : IPluginConfiguration
     public bool ReducedTextBool { get; set; } = true;
     public List<Dictionary<string, (string, int)>> AllBooks { get; set; } = [];
     public Dictionary<string, string> AllObjectives { get; set; } = [];
+    public Dictionary<string, int> CompletedObjectives { get; set; } = [];
 
     // the below exist just to make saving less cumbersome
     public void Save()

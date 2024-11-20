@@ -47,7 +47,8 @@ public class ComparisonWindow : Window, IDisposable
         Configuration = plugin.Configuration;
 
         // UInt32 colors are reversed: 0xAABBGGRR
-        playerColors = new List<UInt32>() {
+        playerColors = new List<UInt32>() 
+        {
             0xFFFCAF64,
             0xFF91FEFF,
             0xFF7C7CFC,
@@ -171,6 +172,34 @@ public class ComparisonWindow : Window, IDisposable
             ImGui.GetWindowDrawList().AddLine(min, max, 0xFFFFFFFF, thickness);
         }
     }
+    private void AddNeededViaPlayerName(int index)
+    {
+        var allBooks = Configuration.AllBooks;
+        foreach (var book in allBooks[index])
+        {
+            var bookValues = book.Value;
+            if (bookValues.Item2 + 1 < 10)
+            {
+                bookValues.Item2++;
+            }
+            allBooks[index][book.Key] = bookValues;
+        }
+        Configuration.Save();
+    }
+    private void SubtractNeededViaPlayerName(int index)
+    {
+        var allBooks = Configuration.AllBooks;
+        foreach (var book in allBooks[index])
+        {
+            var bookValues = book.Value;
+            if (bookValues.Item2 - 1 >= 0)
+            {
+                bookValues.Item2--;
+            }
+            allBooks[index][book.Key] = bookValues;
+        }
+        Configuration.Save();
+    }
     private void AddNeededViaObjective(string[] ids)
     {
         var allBooks = Configuration.AllBooks;
@@ -194,7 +223,7 @@ public class ComparisonWindow : Window, IDisposable
             foreach (var book in allBooks[int.Parse(id)])
             {
                 var bookValues = book.Value;
-                if (bookValues.Item2 - 1 > 0)
+                if (bookValues.Item2 - 1 >= 0)
                 {
                     bookValues.Item2--;
                 }
@@ -214,6 +243,23 @@ public class ComparisonWindow : Window, IDisposable
             {
                 var playerName = book.Key;
                 ImGui.Button($"{playerName} ({book.Value.Item2.ToString()})");
+                //if (ImGui.IsItemClicked(ImGuiMouseButton.Left) && ImGui.GetIO().KeyShift)
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                {
+                    SubtractNeededViaPlayerName(i);
+                }
+
+                //if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && ImGui.GetIO().KeyShift)
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                {
+                    AddNeededViaPlayerName(i);
+                }
+
+                //if (ImGui.IsItemHovered())
+                //{
+                //    ImGui.SetTooltip("Shift + left/right click to subtract/add \"needed objectives\" value, respectively.");
+                //}
+
                 var min = ImGui.GetItemRectMin();
                 var max = ImGui.GetItemRectMax();
                 min.Y = max.Y;

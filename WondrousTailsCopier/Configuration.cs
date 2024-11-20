@@ -16,7 +16,7 @@ public class Configuration : IPluginConfiguration
     public bool ListNumNeededBool { get; set; } = true;
     public bool ExcludeCompletedBool { get; set; } = true;
     public bool ReducedTextBool { get; set; } = true;
-    public List<Dictionary<string, string>> AllBooks { get; set; } = [];
+    public List<Dictionary<string, (string, int)>> AllBooks { get; set; } = [];
     public Dictionary<string, string> AllObjectives { get; set; } = [];
 
     // the below exist just to make saving less cumbersome

@@ -80,8 +80,17 @@ public class ComparisonWindow : Window, IDisposable
 
         return trials;
     }
-    //private void DisplayObjectives(Dictionary<string, string> dungeonObjectives, Dictionary<string, string> allianceRaidObjectives, 
-    //    Dictionary<string, string> normalRaidObjectives, Dictionary<string, string> trialObjectives, Dictionary<string, string> otherObjectives)
+
+    private string PadNumbers(string input)
+    {
+        return Regex.Replace(input, "^[0-9]+", match => match.Value.PadLeft(10, '0'));
+    }
+    private void DrawLine(Vector2 min, Vector2 max)
+    {
+        ImGui.GetWindowDrawList().AddLine(min, max, 0xFFFFFFFF, 4.0f);
+        //Toggle();
+        Plugin.Chat.Print("LOL");
+    }
     private void DisplayObjectives(List<Dictionary<string, string>> categorizedObjectives)
     {
         var allBooks = Configuration.AllBooks;
@@ -91,7 +100,7 @@ public class ComparisonWindow : Window, IDisposable
             foreach (var book in allBooks[i])
             {
                 var playerName = book.Key;
-                ImGui.Button(playerName);
+                ImGui.Button($"{playerName} ({book.Value.Item2.ToString()})");
                 var min = ImGui.GetItemRectMin();
                 var max = ImGui.GetItemRectMax();
                 min.Y = max.Y;
@@ -105,25 +114,59 @@ public class ComparisonWindow : Window, IDisposable
         ImGui.Text(" ");
         ImGui.Text(" ");
 
-        foreach (var objectiveDict in categorizedObjectives)
+        // foreach (var objectiveDict in categorizedObjectives)
+        foreach (var (objectiveDict, i) in categorizedObjectives.Select((objectiveDict, i) => (objectiveDict, i)))
         {
-            var sortedObjectiveDict = new SortedDictionary<string, string>(objectiveDict);
+            //var sortedObjectiveDict = new SortedDictionary<string, string>(objectiveDict);
+            var sortedObjectiveDict = new Dictionary<string, string>(objectiveDict);
+            //Plugin.Chat.Print(i.ToString());
+
+            if (i == 0)
+            {
+                // Leveling Dungeons
+                sortedObjectiveDict = objectiveDict.OrderBy(pair => PadNumbers(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value);
+            }
+            else if (i == categorizedObjectives.Count - 1)
+            {
+                // Misc objectives
+                sortedObjectiveDict = objectiveDict.OrderBy(pair => pair.Key.Length).ToDictionary(pair => pair.Key, pair => pair.Value);
+            }
+            else
+            {
+                // All other objectives
+                sortedObjectiveDict = objectiveDict.OrderBy(pair => pair.Key).ToDictionary(pair => pair.Key, pair => pair.Value);
+            }
 
             foreach (var objective in sortedObjectiveDict)
             {
                 var ids = objective.Value.Split(',');
-                ImGui.Button(objective.Key);
+
+                //ImGui.PushID(i);
+                if (ImGui.Button($"{objective.Key}"))
+                {
+                    var lineMin = ImGui.GetItemRectMin();
+                    var lineMax = ImGui.GetItemRectMax();
+                    Plugin.Chat.Print($"{lineMin.X.ToString()}, {lineMin.Y.ToString()} // {lineMax.X.ToString()}, {lineMax.Y.ToString()}");
+                    lineMin.Y = (lineMax.Y - lineMin.Y) / 2;
+                    lineMax.Y = lineMin.Y;
+                    Plugin.Chat.Print($"{lineMin.X.ToString()}, {lineMin.Y.ToString()} // {lineMax.X.ToString()}, {lineMax.Y.ToString()}");
+                    ImGui.GetWindowDrawList().AddLine(lineMin, lineMax, 0xFFFFFFFF, 4.0f);
+                    //DrawLine(lineMin, lineMax);
+
+                }
+
                 var min = ImGui.GetItemRectMin();
                 var max = ImGui.GetItemRectMax();
                 min.Y = max.Y;
 
-                for (var i = 0; i < ids.Length; i++)
+                for (var j = 0; j < ids.Length; j++)
                 {
-                    ImGui.GetWindowDrawList().AddLine(min, max, playerColors[int.Parse(ids[i])], 8.0f);
+                    ImGui.GetWindowDrawList().AddLine(min, max, playerColors[int.Parse(ids[j])], 8.0f);
                     //min.X += 6.0f;
                     //Plugin.Chat.Print($"{min.X.ToString()}, {min.Y.ToString()} // {max.X.ToString()}, {max.Y.ToString()}");
                     min.X += ((max.X - min.X) / ids.Length);
                 }
+                //ImGui.PopID();
                 ImGui.SameLine();
             }
             ImGui.Text(" ");
@@ -149,7 +192,7 @@ public class ComparisonWindow : Window, IDisposable
                 continue;
             }
             
-            pattern = @"^\d+";
+            pattern = @"^\d+|Dungeons \(";
             r = new Regex(pattern);
             m = r.Match(objective.Key);
             if (m.Success)
@@ -158,7 +201,7 @@ public class ComparisonWindow : Window, IDisposable
                 continue;
             }
 
-            pattern = @" AR$";
+            pattern = @" AR$|^Alliance Raids";
             r = new Regex(pattern);
             m = r.Match(objective.Key);
             if (m.Success)
@@ -167,7 +210,7 @@ public class ComparisonWindow : Window, IDisposable
                 continue;
             }
 
-            pattern = @"^FL$|^CC$|RW|^Deep Dungeons$|^Treasure";
+            pattern = @"^FL$|^CC$|RW|^Deep Dungeons$|^Treasure|^Frontline|^Crystalline Conflict|^Rival Wings";
             r = new Regex(pattern);
             m = r.Match(objective.Key);
             if (m.Success)
@@ -208,7 +251,7 @@ public class ComparisonWindow : Window, IDisposable
             foreach (var book in allBooks[i])
             {
                 var playerName = book.Key;
-                var playerObjectives = book.Value;
+                var playerObjectives = book.Value.Item1;
                 var splitObjs = playerObjectives.Split(", ");
 
                 foreach (var obj in splitObjs)
@@ -241,26 +284,41 @@ public class ComparisonWindow : Window, IDisposable
     {
         var allBooks = Configuration.AllBooks;
 
-        var pattern = @"(\[\d+:\d+\]\[\w+\d\]|\[\d+:\d+\]|\[\w+\d\])(\(\W?(\w+ \w+)\) |<\W?(\w+ \w+)> )(.*)";
+        var pattern = @"(\[\d+:\d+\]\[\w+\d\]|\[\d+:\d+\]|\[\w+\d\])(\(\W?(\w+ \w+)\) |<\W?(\w+ \w+)> )(.*), need (\d)|(.*), need (\d)";
         var clipboardContents = ImGui.GetClipboardText().Trim();
-
+        Plugin.Chat.Print(clipboardContents);
         var r = new Regex(pattern);
         var m = r.Match(clipboardContents);
 
         var playerName = "";
         var playerIndex = -1;
 
-        var playerObjectives = m.Groups[5].Value;
+        var playerObjectives = "";
+        var playerNeeded = -1;
+        
         if (m.Success)
         {
-            if (m.Groups[3].Value.Length == 0)
+            if (m.Groups[3].Value.Length == 0 && m.Groups[4].Value.Length == 0)
             {
-                playerName = m.Groups[4].Value;
+                playerName = Plugin.GetLocalPlayerName();
+                playerObjectives = m.Groups[7].Value;
+                playerNeeded = int.Parse(m.Groups[8].Value);
             }
             else
             {
-                playerName = m.Groups[3].Value;
+                if (m.Groups[3].Value.Length == 0)
+                {
+                    playerName = m.Groups[4].Value;
+                }
+                else
+                {
+                    playerName = m.Groups[3].Value;
+                }
+
+                playerObjectives = m.Groups[5].Value;
+                playerNeeded = int.Parse(m.Groups[6].Value);
             }
+
 
             for (var i = 0; i < allBooks.Count; i++)
             {
@@ -273,15 +331,19 @@ public class ComparisonWindow : Window, IDisposable
 
             if (playerIndex > -1)
             {
-                allBooks[playerIndex][playerName] = playerObjectives;
+                allBooks[playerIndex][playerName] = (playerObjectives, playerNeeded);
             }
             else
             {
-                allBooks.Add(new Dictionary<string, string> {{ playerName, playerObjectives }});
+                allBooks.Add(new Dictionary<string, (string, int)> {{ playerName, (playerObjectives, playerNeeded) } });
             }
 
             Configuration.AllBooks = allBooks;
             Configuration.Save();
+        }
+        else
+        {
+            Plugin.Chat.Print("Nope");
         }
     }
 
@@ -290,17 +352,24 @@ public class ComparisonWindow : Window, IDisposable
         var allBooks = Configuration.AllBooks;
         var testerValue = Configuration.Tester;
 
-        if (ImGui.Button("Import from Clipboard"))
+        if (ImGui.Button("Import From Clipboard"))
         {
-            Plugin.Chat.Print("Import from Clipboard!");
-
             ParseClipboard();
             CompileBooks();
             OrganizeObjectives();
             Redraw();
         }
         ImGui.SameLine();
-        if (ImGui.Button("Remove all"))
+        if (ImGui.Button("Import Your Book"))
+        {
+            Plugin.ToClipboard();
+            ParseClipboard();
+            CompileBooks();
+            OrganizeObjectives();
+            Redraw();
+        }
+        ImGui.SameLine();
+        if (ImGui.Button("Remove All"))
         {
             Configuration.AllBooks = [];
             Configuration.AllObjectives = [];

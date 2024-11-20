@@ -28,6 +28,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] public static IDataManager DataManager { get; set; } = null!;
     [PluginService] public static IChatGui Chat { get; private set; } = null!;
+    [PluginService] public static IClientState ClientState { get; private set; } = null!;
 
     private const string CommandName = "/wtc";
 
@@ -98,17 +99,9 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    private void OhGod()
+    public string GetLocalPlayerName()
     {
-        var territories = DataManager.GetExcelSheet<ContentFinderCondition>()!
-            .Where(r => r.ContentType.Value.RowId == 4)
-            .Select(r => r.TerritoryType.Value)
-            .ToHashSet();
-
-        foreach (var territory in territories)
-        {
-            Chat.Print(territory.ContentFinderCondition.Value.Name.ToString());
-        }
+        return ClientState.LocalPlayer?.Name.ToString();
     }
 
     public void RemainingObjectives()

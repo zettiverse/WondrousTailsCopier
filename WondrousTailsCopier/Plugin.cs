@@ -144,6 +144,93 @@ public sealed class Plugin : IDalamudPlugin
         return dutyList;
     }
 
+    private string ReduceWTDutyName(string dutyLocation)
+    {
+        if (dutyLocation.Contains("Dungeons "))
+        {
+            var pattern = @"Dungeons \(Lv\. (\d+-\d+|\d+)";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            dutyLocation = m.Groups[1].Value;
+        }
+        else if (dutyLocation.Contains("Alliance Raids"))
+        {
+            if (dutyLocation.Contains("A Realm Reborn"))
+            {
+                dutyLocation = "ARR";
+            }
+            else if (dutyLocation.Contains("Heavensward"))
+            {
+                dutyLocation = "HW";
+            }
+            else if (dutyLocation.Contains("Stormblood"))
+            {
+                dutyLocation = "StB";
+            }
+            else if (dutyLocation.Contains("Shadowbringers"))
+            {
+                dutyLocation = "ShB";
+            }
+            else if (dutyLocation.Contains("Endwalker"))
+            {
+                dutyLocation = "EW";
+            }
+            else if (dutyLocation.Contains("Dawntrail"))
+            {
+                dutyLocation = "DT";
+            }
+            dutyLocation += " AR";
+        }
+        else if (dutyLocation.Contains("of Bahamut"))
+        {
+            // May be problematic if they go back to specific "Turn x" objectives
+            var pattern = @"(.*) of Bahamut";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            dutyLocation = m.Groups[1].Value;
+        }
+        else if (dutyLocation.Contains("-heavyweight"))
+        {
+            var pattern = @"(AAC) \w+-heavyweight (.*)";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            dutyLocation = $"{m.Groups[1].Value} {m.Groups[2].Value}";
+        }
+        else if (dutyLocation.Contains("Extreme"))
+        {
+            var pattern = @"(?:the )?(.*) \(Extreme\)";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            dutyLocation = m.Groups[1].Value;
+            if (dutyLocation.Contains("Containment Bay"))
+            {
+                var splitCB = dutyLocation.Split(' ');
+                dutyLocation = splitCB[2];
+            }
+        }
+        else if (dutyLocation.Contains("Minstrel's Ballad"))
+        {
+            var pattern = @"the Minstrel's Ballad: (.*)";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            dutyLocation = m.Groups[1].Value;
+        }
+        else if (dutyLocation == "Crystalline Conflict")
+        {
+            dutyLocation = "CC";
+        }
+        else if (dutyLocation == "Frontline")
+        {
+            dutyLocation = "FL";
+        }
+        else if (dutyLocation == "Rival Wings")
+        {
+            dutyLocation = "RW";
+        }
+
+        return dutyLocation;
+    }
+
     public string GetLocalPlayerName()
     {
         return ClientState.LocalPlayer?.Name.ToString();
@@ -203,87 +290,7 @@ public sealed class Plugin : IDalamudPlugin
 
             if (reducedText)
             {
-                if (dutyLocation.Contains("Dungeons "))
-                {
-                    var pattern = @"Dungeons \(Lv\. (\d+-\d+|\d+)";
-                    var r = new Regex(pattern);
-                    var m = r.Match(dutyLocation);
-                    dutyLocation = m.Groups[1].Value;
-                }
-                else if (dutyLocation.Contains("Alliance Raids"))
-                {
-                    if (dutyLocation.Contains("A Realm Reborn"))
-                    {
-                        dutyLocation = "ARR";
-                    }
-                    else if (dutyLocation.Contains("Heavensward"))
-                    {
-                        dutyLocation = "HW";
-                    }
-                    else if (dutyLocation.Contains("Stormblood"))
-                    {
-                        dutyLocation = "StB";
-                    }
-                    else if (dutyLocation.Contains("Shadowbringers"))
-                    {
-                        dutyLocation = "ShB";
-                    }
-                    else if (dutyLocation.Contains("Endwalker"))
-                    {
-                        dutyLocation = "EW";
-                    }
-                    else if (dutyLocation.Contains("Dawntrail"))
-                    {
-                        dutyLocation = "DT";
-                    }
-                    dutyLocation += " AR";
-                }
-                else if (dutyLocation.Contains("of Bahamut"))
-                {
-                    // May be problematic if they go back to specific "Turn x" objectives
-                    var pattern = @"(.*) of Bahamut";
-                    var r = new Regex(pattern);
-                    var m = r.Match(dutyLocation);
-                    dutyLocation = m.Groups[1].Value;
-                }
-                else if (dutyLocation.Contains("-heavyweight"))
-                {
-                    var pattern = @"(AAC) \w+-heavyweight (.*)";
-                    var r = new Regex(pattern);
-                    var m = r.Match(dutyLocation);
-                    dutyLocation = $"{m.Groups[1].Value} {m.Groups[2].Value}";
-                }
-                else if (dutyLocation.Contains("Extreme"))
-                {
-                    var pattern = @"(?:the )?(.*) \(Extreme\)";
-                    var r = new Regex(pattern);
-                    var m = r.Match(dutyLocation);
-                    dutyLocation = m.Groups[1].Value;
-                    if (dutyLocation.Contains("Containment Bay"))
-                    {
-                        var splitCB = dutyLocation.Split(' ');
-                        dutyLocation = splitCB[2];
-                    }
-                }
-                else if (dutyLocation.Contains("Minstrel's Ballad"))
-                {
-                    var pattern = @"the Minstrel's Ballad: (.*)";
-                    var r = new Regex(pattern);
-                    var m = r.Match(dutyLocation);
-                    dutyLocation = m.Groups[1].Value;
-                }
-                else if (dutyLocation == "Crystalline Conflict")
-                {
-                    dutyLocation = "CC";
-                }
-                else if (dutyLocation == "Frontline")
-                {
-                    dutyLocation = "FL";
-                }
-                else if (dutyLocation == "Rival Wings")
-                {
-                    dutyLocation = "RW";
-                }
+                dutyLocation = ReduceWTDutyName(dutyLocation);
             }
 
             if (displayType == "copy")

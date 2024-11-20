@@ -259,9 +259,9 @@ public sealed class Plugin : IDalamudPlugin
     }
     public string GetWTNames(string separator)
     {
-        bool reducedText = Configuration.ReducedTextBool;
-        bool excludeCompleted = Configuration.ExcludeCompletedBool;
-        bool listNumNeeded = Configuration.ListNumNeededBool;
+        var reducedText = Configuration.ReducedTextBool;
+        var excludeCompleted = Configuration.ExcludeCompletedBool;
+        var listNumNeeded = Configuration.ListNumNeededBool;
 
         if (!HasWT())
         {

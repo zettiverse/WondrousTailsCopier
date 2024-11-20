@@ -238,9 +238,8 @@ public sealed class Plugin : IDalamudPlugin
 
     public void RemainingObjectives()
     {
-        var wtData = GetWTNames(forceTrue: "listNumNeeded");
-        var numNeeded = wtData.Substring(wtData.Length - 1);
-        Chat.Print($"You need {numNeeded} objective{(int.Parse(numNeeded) == 1 ? "" : "s")} to finish your Wondrous Tails book.");
+        GetWTDutyList(false, out var numNeeded);
+        Chat.Print($"You need {numNeeded} objective{(numNeeded == 1 ? "" : "s")} to finish your Wondrous Tails book.");
     }
     public void ToClipboard(string displayType = "copy")
     {
@@ -258,24 +257,11 @@ public sealed class Plugin : IDalamudPlugin
     {
         return PlayerState.Instance()->HasWeeklyBingoJournal;
     }
-    public string GetWTNames(string displayType = "copy", string forceTrue = "")
+    public string GetWTNames(string displayType = "copy")
     {
         bool reducedText = Configuration.ReducedTextBool;
         bool excludeCompleted = Configuration.ExcludeCompletedBool;
         bool listNumNeeded = Configuration.ListNumNeededBool;
-
-        if (forceTrue.Contains("reducedText"))
-        {
-            reducedText = true;
-        }
-        else if (forceTrue.Contains("excludeCompleted"))
-        {
-            excludeCompleted = true;
-        }
-        else if (forceTrue.Contains("listNumNeeded"))
-        {
-            listNumNeeded = true;
-        }
 
         if (!HasWT())
         {

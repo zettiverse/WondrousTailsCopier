@@ -282,7 +282,6 @@ public sealed class Plugin : IDalamudPlugin
             Chat.Print("How'd you get here without having a Wondrous Tails book??");
             return "Missing Wondrous Tails book. Fix me.";
         }
-        var tasksInWT = "";
         var dutyList = GetWTDutyList(excludeCompleted, out int numNeeded);
 
         if (reducedText)
@@ -293,21 +292,7 @@ public sealed class Plugin : IDalamudPlugin
         {
             dutyList.Add("need {numNeeded}");
         }
-
-        foreach (var dutyLocation in dutyList)
-        {
-            if (displayType == "copy")
-            {
-                tasksInWT += $"{dutyLocation}, ";
-            }
-            else // if (displayType == "list")
-            {
-                tasksInWT += $"{dutyLocation} \n";
-            }
-
-        }
-        return tasksInWT.Substring(0, tasksInWT.Length - 2);
-
+        return string.Join(displayType == "copy" ? ", " : "\n", dutyList);
     }
 
     private void DrawUI() => WindowSystem.Draw();

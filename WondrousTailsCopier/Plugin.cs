@@ -99,59 +99,11 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    public string GetLocalPlayerName()
+    private unsafe List<string> GetWTDutyList(bool excludeCompleted, out int numNeeded)
     {
-        return ClientState.LocalPlayer?.Name.ToString();
-    }
-
-    public void RemainingObjectives()
-    {
-        var wtData = GetWTNames(forceTrue: "listNumNeeded");
-        var numNeeded = wtData.Substring(wtData.Length - 1);
-        Chat.Print($"You need {numNeeded} objective{(int.Parse(numNeeded) == 1 ? "" : "s")} to finish your Wondrous Tails book.");
-    }
-    public void ToClipboard(string displayType = "copy")
-    {
-        if (HasWT())
-        {
-            ImGui.SetClipboardText(GetWTNames(displayType));
-            Chat.Print("Wondrous Tails objectives copied to clipboard.");
-        }
-        else
-        {
-            Chat.Print("You don't have a Wondrous Tails book!");
-        }
-    }
-    public unsafe bool HasWT()
-    {
-        return PlayerState.Instance()->HasWeeklyBingoJournal;
-    }
-    public unsafe string GetWTNames(string displayType = "copy", string forceTrue = "")
-    {
-        bool reducedText = Configuration.ReducedTextBool;
-        bool excludeCompleted = Configuration.ExcludeCompletedBool;
-        bool listNumNeeded = Configuration.ListNumNeededBool;
-
-        if (forceTrue.Contains("reducedText"))
-        {
-            reducedText = true;
-        }
-        else if (forceTrue.Contains("excludeCompleted"))
-        {
-            excludeCompleted = true;
-        }
-        else if (forceTrue.Contains("listNumNeeded"))
-        {
-            listNumNeeded = true;
-        }
-
-        if (!HasWT())
-        {
-            Chat.Print("How'd you get here without having a Wondrous Tails book??");
-            return "Missing Wondrous Tails book. Fix me.";
-        }
-        var tasksInWT = "";
+        List<string> dutyList = [];
         var numCompleted = 0;
+
         foreach (var index in Enumerable.Range(0, 16))
         {
             var taskId = PlayerState.Instance()->WeeklyBingoOrderData[index];
@@ -184,6 +136,70 @@ public sealed class Plugin : IDalamudPlugin
             {
                 dutyLocation = bingoOrderData.Text.Value.Description.ToString();
             }
+            dutyList.Add(dutyLocation);
+        }
+
+        numNeeded = numCompleted < 9 ? 9 - numCompleted : 0;
+
+        return dutyList;
+    }
+
+    public string GetLocalPlayerName()
+    {
+        return ClientState.LocalPlayer?.Name.ToString();
+    }
+
+    public void RemainingObjectives()
+    {
+        var wtData = GetWTNames(forceTrue: "listNumNeeded");
+        var numNeeded = wtData.Substring(wtData.Length - 1);
+        Chat.Print($"You need {numNeeded} objective{(int.Parse(numNeeded) == 1 ? "" : "s")} to finish your Wondrous Tails book.");
+    }
+    public void ToClipboard(string displayType = "copy")
+    {
+        if (HasWT())
+        {
+            ImGui.SetClipboardText(GetWTNames(displayType));
+            Chat.Print("Wondrous Tails objectives copied to clipboard.");
+        }
+        else
+        {
+            Chat.Print("You don't have a Wondrous Tails book!");
+        }
+    }
+    public unsafe bool HasWT()
+    {
+        return PlayerState.Instance()->HasWeeklyBingoJournal;
+    }
+    public string GetWTNames(string displayType = "copy", string forceTrue = "")
+    {
+        bool reducedText = Configuration.ReducedTextBool;
+        bool excludeCompleted = Configuration.ExcludeCompletedBool;
+        bool listNumNeeded = Configuration.ListNumNeededBool;
+
+        if (forceTrue.Contains("reducedText"))
+        {
+            reducedText = true;
+        }
+        else if (forceTrue.Contains("excludeCompleted"))
+        {
+            excludeCompleted = true;
+        }
+        else if (forceTrue.Contains("listNumNeeded"))
+        {
+            listNumNeeded = true;
+        }
+
+        if (!HasWT())
+        {
+            Chat.Print("How'd you get here without having a Wondrous Tails book??");
+            return "Missing Wondrous Tails book. Fix me.";
+        }
+        var tasksInWT = "";
+        var dutyList = GetWTDutyList(excludeCompleted, out int numNeeded);
+        foreach (var duty in dutyList)
+        {
+            var dutyLocation = duty;
 
             if (reducedText)
             {
@@ -282,7 +298,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         if (listNumNeeded && displayType == "copy")
         {
-            tasksInWT += $"need {9 - numCompleted}, ";
+            tasksInWT += $"need {numNeeded}, ";
         }
         return tasksInWT.Substring(0, tasksInWT.Length - 2);
 

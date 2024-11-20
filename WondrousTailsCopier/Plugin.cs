@@ -128,21 +128,21 @@ public sealed class Plugin : IDalamudPlugin
     }
     public unsafe string GetWTNames(string displayType = "copy", string forceTrue = "")
     {
-        bool reducedTextBool = Configuration.ReducedTextBool;
-        bool excludeCompletedBool = Configuration.ExcludeCompletedBool;
-        bool listNumNeededBool = Configuration.ListNumNeededBool;
+        bool reducedText = Configuration.ReducedTextBool;
+        bool excludeCompleted = Configuration.ExcludeCompletedBool;
+        bool listNumNeeded = Configuration.ListNumNeededBool;
 
         if (forceTrue.Contains("reducedText"))
         {
-            reducedTextBool = true;
+            reducedText = true;
         }
         else if (forceTrue.Contains("excludeCompleted"))
         {
-            excludeCompletedBool = true;
+            excludeCompleted = true;
         }
         else if (forceTrue.Contains("listNumNeeded"))
         {
-            listNumNeededBool = true;
+            listNumNeeded = true;
         }
 
         if (!HasWT())
@@ -162,7 +162,7 @@ public sealed class Plugin : IDalamudPlugin
             if (bingoState != PlayerState.WeeklyBingoTaskStatus.Open)
             {
                 numCompleted++;
-                if (excludeCompletedBool)
+                if (excludeCompleted)
                 {
                     continue;
                 }
@@ -185,7 +185,7 @@ public sealed class Plugin : IDalamudPlugin
                 dutyLocation = bingoOrderData.Text.Value.Description.ToString();
             }
 
-            if (reducedTextBool)
+            if (reducedText)
             {
                 if (dutyLocation.Contains("Dungeons "))
                 {
@@ -280,7 +280,7 @@ public sealed class Plugin : IDalamudPlugin
             }
 
         }
-        if (listNumNeededBool && displayType == "copy")
+        if (listNumNeeded && displayType == "copy")
         {
             tasksInWT += $"need {9 - numCompleted}, ";
         }

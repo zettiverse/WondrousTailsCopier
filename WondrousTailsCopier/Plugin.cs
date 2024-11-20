@@ -284,15 +284,14 @@ public sealed class Plugin : IDalamudPlugin
         }
         var tasksInWT = "";
         var dutyList = GetWTDutyList(excludeCompleted, out int numNeeded);
-        foreach (var duty in dutyList)
+
+        if (reducedText)
         {
-            var dutyLocation = duty;
+            dutyList = dutyList.Select(ReduceWTDutyName).ToList();
+        }
 
-            if (reducedText)
-            {
-                dutyLocation = ReduceWTDutyName(dutyLocation);
-            }
-
+        foreach (var dutyLocation in dutyList)
+        {
             if (displayType == "copy")
             {
                 tasksInWT += $"{dutyLocation}, ";

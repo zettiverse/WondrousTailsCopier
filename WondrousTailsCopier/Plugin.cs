@@ -95,6 +95,10 @@ public sealed class Plugin : IDalamudPlugin
         {
             RemainingObjectives();
         }
+        else if (args == "bc")
+        {
+            ToggleComparisonUI();
+        }
         else
         {
             ToggleMainUI();

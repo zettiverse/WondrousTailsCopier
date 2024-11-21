@@ -12,13 +12,14 @@ public class ConfigWindow : Window, IDisposable
     // We give this window a constant ID using ###
     // This allows for labels being dynamic, like "{FPS Counter}fps###XYZ counter window",
     // and the window ID will always be "###XYZ counter window" for ImGui
-    public ConfigWindow(Plugin plugin) : base("Wondrous Tails Copier Configuration###With a constant ID")
+    public ConfigWindow(Plugin plugin) : base("Wondrous Tails Copier Configuration###ConfigWindow",
+            ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
-        Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
-                ImGuiWindowFlags.NoScrollWithMouse;
-
-        Size = new Vector2(232, 90);
-        SizeCondition = ImGuiCond.Always;
+        SizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = new Vector2(300, 255),
+            MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
+        };
 
         Configuration = plugin.Configuration;
     }
@@ -40,6 +41,13 @@ public class ConfigWindow : Window, IDisposable
 
     public override void Draw()
     {
+        /*
+            public bool ListNumNeededBool { get; set; } = true;
+            public bool ExcludeCompletedBool { get; set; } = true;
+            public bool ReducedTextBool { get; set; } = true;
+        */
+
+        /*
         // can't ref a property, so use a local copy
         var configValue = Configuration.SomePropertyToBeSavedAndWithADefault;
         if (ImGui.Checkbox("Random Config Bool", ref configValue))
@@ -48,6 +56,7 @@ public class ConfigWindow : Window, IDisposable
             // can save immediately on change, if you don't want to provide a "Save and Close" button
             Configuration.Save();
         }
+        */
 
         var reducedTextValue = Configuration.ReducedTextBool;
         if (ImGui.Checkbox("Use Reduced Text", ref reducedTextValue))
@@ -56,10 +65,17 @@ public class ConfigWindow : Window, IDisposable
             Configuration.Save();
         }
 
-        var movable = Configuration.IsConfigWindowMovable;
-        if (ImGui.Checkbox("Movable Config Window", ref movable))
+        var excludeCompletedValue = Configuration.ExcludeCompletedBool;
+        if (ImGui.Checkbox("Exclude Completed from List", ref excludeCompletedValue))
         {
-            Configuration.IsConfigWindowMovable = movable;
+            Configuration.ExcludeCompletedBool = excludeCompletedValue;
+            Configuration.Save();
+        }
+
+        var ListNumNeededValue = Configuration.ListNumNeededBool;
+        if (ImGui.Checkbox("List Number of Objectives Needed", ref ListNumNeededValue))
+        {
+            Configuration.ListNumNeededBool = ListNumNeededValue;
             Configuration.Save();
         }
     }

@@ -64,6 +64,17 @@ public class ComparisonWindow : Window, IDisposable
 
     public void Dispose() { }
 
+    public override void PreDraw()
+    {
+        if (Configuration.AutoResizeBookClubBool)
+        {
+            Flags |= ImGuiWindowFlags.AlwaysAutoResize; 
+        }
+        else
+        {
+            Flags &= ~ImGuiWindowFlags.AlwaysAutoResize;
+        }
+    }
     private void Redraw()
     {
         Toggle();
@@ -117,7 +128,6 @@ public class ComparisonWindow : Window, IDisposable
         Configuration.AllObjectives = [];
         ResetCompleted();
         Configuration.Save();
-        Redraw();
     }
     private string PadNumbers(string input)
     {
@@ -298,6 +308,22 @@ public class ComparisonWindow : Window, IDisposable
 
             foreach (var objective in sortedObjectiveDict)
             {
+                // Calculate if we need to wrap the button to next line or keep on the same
+
+                var lastButtonMin = ImGui.GetItemRectMin();
+                var lastButtonMax = ImGui.GetItemRectMax();
+                var nextWordSize = ImGui.CalcTextSize(objective.Key);
+                var wrapToNext = false;
+
+                if (ImGui.GetContentRegionAvail().X > (lastButtonMax.X - lastButtonMin.X) + nextWordSize.X)
+                {
+                    wrapToNext = false;
+                }
+                else
+                {
+                    wrapToNext = true;
+                }
+
                 var ids = objective.Value.Split(',');
 
                 if (ImGui.Button($"{objective.Key}"))
@@ -333,7 +359,12 @@ public class ComparisonWindow : Window, IDisposable
                     DrawLines(lineMin, lineMax, timesCompleted);
                 }
                 //ImGui.PopID();
-                ImGui.SameLine();
+
+                if (!wrapToNext || Configuration.AutoResizeBookClubBool)
+                {
+                    ImGui.SameLine();
+                }
+                
             }
             ImGui.Text(" ");
             ImGui.Text(" ");
@@ -446,16 +477,16 @@ public class ComparisonWindow : Window, IDisposable
         Configuration.AllObjectives = allObjectives;
         Configuration.Save();
     }
-    private void ParseClipboard()
+    private bool ParseContents(string messageContents)
     {
         var allBooks = Configuration.AllBooks;
 
         var pattern = @"(\[\d+:\d+\]\[\w+\d\]|\[\d+:\d+\]|\[\w+\d\])(\(\W?(\w+ \w+)\) |<\W?(\w+ \w+)> )((.*), need (\d))|((.*), need (\d))";
         //var pattern = @"(\[\d+:\d+\]\[\w+\d\]|\[\d+:\d+\]|\[\w+\d\])(\(\W?(\w+ \w+)\) |<\W?(\w+ \w+)> )(.*), need (\d)|(.*), need (\d)";
-        var clipboardContents = ImGui.GetClipboardText().Trim();
-        //Plugin.Chat.Print(clipboardContents);
+        
+        //Plugin.Chat.Print(messageContents);
         var r = new Regex(pattern);
-        var m = r.Match(clipboardContents);
+        var m = r.Match(messageContents);
 
         var playerName = "";
         var playerIndex = -1;
@@ -509,10 +540,12 @@ public class ComparisonWindow : Window, IDisposable
 
             Configuration.AllBooks = allBooks;
             Configuration.Save();
+
+            return true;
         }
         else
         {
-            Plugin.Chat.Print("Could not correctly parse contents of clipboard.");
+            return false;
         }
     }
 
@@ -522,19 +555,29 @@ public class ComparisonWindow : Window, IDisposable
 
         if (ImGui.Button("Import From Clipboard"))
         {
-            ParseClipboard();
-            CompileBooks();
-            OrganizeObjectives();
-            Redraw();
+            if (ParseContents(ImGui.GetClipboardText().Trim()))
+            {
+                CompileBooks();
+                OrganizeObjectives();
+            }
+            else
+            {
+                Plugin.Chat.Print("Could not correctly parse contents of clipboard.");
+            }
+
         }
         ImGui.SameLine();
         if (ImGui.Button("Import Your Book"))
         {
-            Plugin.ToClipboard(", ");
-            ParseClipboard();
-            CompileBooks();
-            OrganizeObjectives();
-            Redraw();
+            if (ParseContents(Plugin.GetWTNames(", ")))
+            {
+                CompileBooks();
+                OrganizeObjectives();
+            }
+            else
+            {
+                Plugin.Chat.Print("Could not correctly parse contents of clipboard.");
+            }
         }
         ImGui.SameLine();
         if (ImGui.Button("Remove All"))
@@ -546,6 +589,21 @@ public class ComparisonWindow : Window, IDisposable
         {
             ResetCompleted();
         }
+        ImGui.SameLine();
+        if (ImGui.Button($"{(Plugin.ChatListenerEnabled ? "Stop" : "Start")} Listening for Books"))
+        {
+            Plugin.ChatListenerEnabled = !Plugin.ChatListenerEnabled;
+            Plugin.ChatListenerLimit = -1;
+
+            if (Plugin.ChatListenerEnabled)
+            {
+                Plugin.Chat.Print("Listening for books...");
+            }
+            else
+            {
+                Plugin.Chat.Print("No longer listening for books.");
+            }
+        }
 
         if (allBooks != null)
         {
@@ -556,85 +614,21 @@ public class ComparisonWindow : Window, IDisposable
             ResetAll();
         }
 
-
-        /*
-        ImGui.Text("Import Wondrous Tails Objectives from Clipboard");
-        ImGui.Text(allBooks.Count.ToString());
-        ImGui.SameLine();
-
-        //if (ImGuiComponents.IconButton(FontAwesomeIcon.Clipboard))
-        if (ImGui.Button("Import from Clipboard"))
+        if (Plugin.ChatListenerEnabled && Plugin.ChatListenerNewMessage)
         {
-            Plugin.Chat.Print("Import from Clipboard!");
+            Plugin.ChatListenerNewMessage = false;
+            if (ParseContents($"[00:00]({Plugin.ChatListenerUser}) {Plugin.ChatListenerMessage}"))
+            {
+                CompileBooks();
+                OrganizeObjectives();
+                Plugin.ChatListenerLimit--;
 
-            ParseClipboard();
-            CompileBooks();
-            OrganizeObjectives();
-            Redraw();
+                if (Plugin.ChatListenerLimit == 0)
+                {
+                    Plugin.ChatListenerEnabled = false;
+                    Plugin.Chat.Print("Listener limit reached. No longer listening for books.");
+                }
+            }
         }
-
-        if (ImGui.Button("Remove all"))
-        {
-            Configuration.AllBooks = [];
-            Configuration.AllObjectives = [];
-            Configuration.Save();
-            Redraw();
-        }
-        */
-        /*
-        ImGui.Text("Julianna Arashi");
-        //ImGui.SameLine();
-        ImGui.Button("70-90");
-        var min = ImGui.GetItemRectMin();
-        var max = ImGui.GetItemRectMax();
-        min.Y = max.Y;
-
-        ImGui.GetWindowDrawList().AddLine(min, max, playerColors[0], 8.0f);
-        min.X += 6.0f;
-        ImGui.GetWindowDrawList().AddLine(min, max, playerColors[1], 8.0f);
-        min.X += 6.0f;
-        ImGui.GetWindowDrawList().AddLine(min, max, playerColors[2], 8.0f);
-        min.X += 6.0f;
-        ImGui.GetWindowDrawList().AddLine(min, max, playerColors[3], 8.0f);
-        min.X += 6.0f;
-        ImGui.GetWindowDrawList().AddLine(min, max, playerColors[4], 8.0f);
-        min.X += 6.0f;
-        ImGui.GetWindowDrawList().AddLine(min, max, playerColors[5], 8.0f);
-        min.X += 6.0f;
-        ImGui.GetWindowDrawList().AddLine(min, max, playerColors[6], 8.0f);
-        min.X += 6.0f;
-        ImGui.GetWindowDrawList().AddLine(min, max, playerColors[7], 8.0f);
-        min.X -= 42.0f;
-        ImGui.GetWindowDrawList().AddLine(min, max, 0xFFFFFFFF, 8.0f);
-
-        ImGui.SameLine();
-        ImGui.Text("70-90");
-        ImGui.SameLine();
-        ImGui.Text("70-90");
-        ImGui.SameLine();
-        ImGui.Text("70-90");
-
-        ImGui.Text("ARR AR");
-        ImGui.SameLine();
-        ImGui.Text("EW AR");
-        
-        ImGui.Text("Binding Coil");
-        ImGui.SameLine();
-        ImGui.Text("Eden's Promise");
-        ImGui.SameLine();
-        ImGui.Text("AAC Light-heavyweight M1 or M2");
-
-        ImGui.Text("Crown of the Immaculate");
-        ImGui.SameLine();
-        ImGui.Text("Zodiark's Fall");
-        ImGui.SameLine();
-        ImGui.Text("Mount Ordeals");
-        ImGui.SameLine();
-        ImGui.Text("Hells Kier");
-
-        ImGui.Text("Deep Dungeons");
-        ImGui.SameLine();
-        ImGui.Text("CC");
-        */
     }
 }

@@ -69,6 +69,7 @@ public class MainWindow : Window, IDisposable
             {
                 Plugin.ToggleComparisonUI();
             }
+            //ImGui.Text(Plugin.TesterString);
         }
         else
         {

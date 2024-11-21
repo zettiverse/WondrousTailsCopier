@@ -531,7 +531,7 @@ public class ComparisonWindow : Window, IDisposable
         ImGui.SameLine();
         if (ImGui.Button("Import Your Book"))
         {
-            Plugin.ToClipboard();
+            Plugin.ToClipboard(", ");
             ParseClipboard();
             CompileBooks();
             OrganizeObjectives();

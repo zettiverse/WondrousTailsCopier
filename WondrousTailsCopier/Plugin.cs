@@ -82,11 +82,11 @@ public sealed class Plugin : IDalamudPlugin
         // in response to the slash command, just toggle the display status of our main ui
         if (args == "copy")
         {
-            ToClipboard();
+            ToClipboard(", ");
         }
         else if (args == "copy list")
         {
-            ToClipboard("list");
+            ToClipboard("\n");
         }
         else if (args == "needed")
         {
@@ -99,59 +99,11 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    public string GetLocalPlayerName()
+    private unsafe List<string> GetWTDutyList(bool excludeCompleted, out int numNeeded)
     {
-        return ClientState.LocalPlayer?.Name.ToString();
-    }
-
-    public void RemainingObjectives()
-    {
-        var wtData = GetWTNames(forceTrue: "listNumNeeded");
-        var numNeeded = wtData.Substring(wtData.Length - 1);
-        Chat.Print($"You need {numNeeded} objective{(int.Parse(numNeeded) == 1 ? "" : "s")} to finish your Wondrous Tails book.");
-    }
-    public void ToClipboard(string displayType = "copy")
-    {
-        if (HasWT())
-        {
-            ImGui.SetClipboardText(GetWTNames(displayType));
-            Chat.Print("Wondrous Tails objectives copied to clipboard.");
-        }
-        else
-        {
-            Chat.Print("You don't have a Wondrous Tails book!");
-        }
-    }
-    public unsafe bool HasWT()
-    {
-        return PlayerState.Instance()->HasWeeklyBingoJournal;
-    }
-    public unsafe string GetWTNames(string displayType = "copy", string forceTrue = "")
-    {
-        bool reducedTextBool = Configuration.ReducedTextBool;
-        bool excludeCompletedBool = Configuration.ExcludeCompletedBool;
-        bool listNumNeededBool = Configuration.ListNumNeededBool;
-
-        if (forceTrue.Contains("reducedText"))
-        {
-            reducedTextBool = true;
-        }
-        else if (forceTrue.Contains("excludeCompleted"))
-        {
-            excludeCompletedBool = true;
-        }
-        else if (forceTrue.Contains("listNumNeeded"))
-        {
-            listNumNeededBool = true;
-        }
-
-        if (!HasWT())
-        {
-            Chat.Print("How'd you get here without having a Wondrous Tails book??");
-            return "Missing Wondrous Tails book. Fix me.";
-        }
-        var tasksInWT = "";
+        List<string> dutyList = [];
         var numCompleted = 0;
+
         foreach (var index in Enumerable.Range(0, 16))
         {
             var taskId = PlayerState.Instance()->WeeklyBingoOrderData[index];
@@ -162,7 +114,7 @@ public sealed class Plugin : IDalamudPlugin
             if (bingoState != PlayerState.WeeklyBingoTaskStatus.Open)
             {
                 numCompleted++;
-                if (excludeCompletedBool)
+                if (excludeCompleted)
                 {
                     continue;
                 }
@@ -184,108 +136,149 @@ public sealed class Plugin : IDalamudPlugin
             {
                 dutyLocation = bingoOrderData.Text.Value.Description.ToString();
             }
-
-            if (reducedTextBool)
-            {
-                if (dutyLocation.Contains("Dungeons "))
-                {
-                    var pattern = @"Dungeons \(Lv\. (\d+-\d+|\d+)";
-                    var r = new Regex(pattern);
-                    var m = r.Match(dutyLocation);
-                    dutyLocation = m.Groups[1].Value;
-                }
-                else if (dutyLocation.Contains("Alliance Raids"))
-                {
-                    if (dutyLocation.Contains("A Realm Reborn"))
-                    {
-                        dutyLocation = "ARR";
-                    }
-                    else if (dutyLocation.Contains("Heavensward"))
-                    {
-                        dutyLocation = "HW";
-                    }
-                    else if (dutyLocation.Contains("Stormblood"))
-                    {
-                        dutyLocation = "StB";
-                    }
-                    else if (dutyLocation.Contains("Shadowbringers"))
-                    {
-                        dutyLocation = "ShB";
-                    }
-                    else if (dutyLocation.Contains("Endwalker"))
-                    {
-                        dutyLocation = "EW";
-                    }
-                    else if (dutyLocation.Contains("Dawntrail"))
-                    {
-                        dutyLocation = "DT";
-                    }
-                    dutyLocation += " AR";
-                }
-                else if (dutyLocation.Contains("of Bahamut"))
-                {
-                    // May be problematic if they go back to specific "Turn x" objectives
-                    var pattern = @"(.*) of Bahamut";
-                    var r = new Regex(pattern);
-                    var m = r.Match(dutyLocation);
-                    dutyLocation = m.Groups[1].Value;
-                }
-                else if (dutyLocation.Contains("-heavyweight"))
-                {
-                    var pattern = @"(AAC) \w+-heavyweight (.*)";
-                    var r = new Regex(pattern);
-                    var m = r.Match(dutyLocation);
-                    dutyLocation = $"{m.Groups[1].Value} {m.Groups[2].Value}";
-                }
-                else if (dutyLocation.Contains("Extreme"))
-                {
-                    var pattern = @"(?:the )?(.*) \(Extreme\)";
-                    var r = new Regex(pattern);
-                    var m = r.Match(dutyLocation);
-                    dutyLocation = m.Groups[1].Value;
-                    if (dutyLocation.Contains("Containment Bay"))
-                    {
-                        var splitCB = dutyLocation.Split(' ');
-                        dutyLocation = splitCB[2];
-                    }
-                }
-                else if (dutyLocation.Contains("Minstrel's Ballad"))
-                {
-                    var pattern = @"the Minstrel's Ballad: (.*)";
-                    var r = new Regex(pattern);
-                    var m = r.Match(dutyLocation);
-                    dutyLocation = m.Groups[1].Value;
-                }
-                else if (dutyLocation == "Crystalline Conflict")
-                {
-                    dutyLocation = "CC";
-                }
-                else if (dutyLocation == "Frontline")
-                {
-                    dutyLocation = "FL";
-                }
-                else if (dutyLocation == "Rival Wings")
-                {
-                    dutyLocation = "RW";
-                }
-            }
-
-            if (displayType == "copy")
-            {
-                tasksInWT += $"{dutyLocation}, ";
-            }
-            else // if (displayType == "list")
-            {
-                tasksInWT += $"{dutyLocation} \n";
-            }
-
+            dutyList.Add(dutyLocation);
         }
-        if (listNumNeededBool && displayType == "copy")
+
+        numNeeded = numCompleted < 9 ? 9 - numCompleted : 0;
+
+        return dutyList;
+    }
+
+    private string ReduceWTDutyName(string dutyLocation)
+    {
+        if (dutyLocation.Contains("Dungeons "))
         {
-            tasksInWT += $"need {9 - numCompleted}, ";
+            var pattern = @"Dungeons \(Lv\. (\d+-\d+|\d+)";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            dutyLocation = m.Groups[1].Value;
         }
-        return tasksInWT.Substring(0, tasksInWT.Length - 2);
+        else if (dutyLocation.Contains("Alliance Raids"))
+        {
+            if (dutyLocation.Contains("A Realm Reborn"))
+            {
+                dutyLocation = "ARR";
+            }
+            else if (dutyLocation.Contains("Heavensward"))
+            {
+                dutyLocation = "HW";
+            }
+            else if (dutyLocation.Contains("Stormblood"))
+            {
+                dutyLocation = "StB";
+            }
+            else if (dutyLocation.Contains("Shadowbringers"))
+            {
+                dutyLocation = "ShB";
+            }
+            else if (dutyLocation.Contains("Endwalker"))
+            {
+                dutyLocation = "EW";
+            }
+            else if (dutyLocation.Contains("Dawntrail"))
+            {
+                dutyLocation = "DT";
+            }
+            dutyLocation += " AR";
+        }
+        else if (dutyLocation.Contains("of Bahamut"))
+        {
+            // May be problematic if they go back to specific "Turn x" objectives
+            var pattern = @"(.*) of Bahamut";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            dutyLocation = m.Groups[1].Value;
+        }
+        else if (dutyLocation.Contains("-heavyweight"))
+        {
+            var pattern = @"(AAC) \w+-heavyweight (.*)";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            dutyLocation = $"{m.Groups[1].Value} {m.Groups[2].Value}";
+        }
+        else if (dutyLocation.Contains("Extreme"))
+        {
+            var pattern = @"(?:the )?(.*) \(Extreme\)";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            dutyLocation = m.Groups[1].Value;
+            if (dutyLocation.Contains("Containment Bay"))
+            {
+                var splitCB = dutyLocation.Split(' ');
+                dutyLocation = splitCB[2];
+            }
+        }
+        else if (dutyLocation.Contains("Minstrel's Ballad"))
+        {
+            var pattern = @"the Minstrel's Ballad: (.*)";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            dutyLocation = m.Groups[1].Value;
+        }
+        else if (dutyLocation == "Crystalline Conflict")
+        {
+            dutyLocation = "CC";
+        }
+        else if (dutyLocation == "Frontline")
+        {
+            dutyLocation = "FL";
+        }
+        else if (dutyLocation == "Rival Wings")
+        {
+            dutyLocation = "RW";
+        }
 
+        return dutyLocation;
+    }
+
+    public string GetLocalPlayerName()
+    {
+        return ClientState.LocalPlayer?.Name.ToString();
+    }
+
+    public void RemainingObjectives()
+    {
+        GetWTDutyList(false, out var numNeeded);
+        Chat.Print($"You need {numNeeded} objective{(numNeeded == 1 ? "" : "s")} to finish your Wondrous Tails book.");
+    }
+    public void ToClipboard(string separator)
+    {
+        if (HasWT())
+        {
+            ImGui.SetClipboardText(GetWTNames(separator));
+            Chat.Print("Wondrous Tails objectives copied to clipboard.");
+        }
+        else
+        {
+            Chat.Print("You don't have a Wondrous Tails book!");
+        }
+    }
+    public unsafe bool HasWT()
+    {
+        return PlayerState.Instance()->HasWeeklyBingoJournal;
+    }
+    public string GetWTNames(string separator)
+    {
+        var reducedText = Configuration.ReducedTextBool;
+        var excludeCompleted = Configuration.ExcludeCompletedBool;
+        var listNumNeeded = Configuration.ListNumNeededBool;
+
+        if (!HasWT())
+        {
+            Chat.Print("How'd you get here without having a Wondrous Tails book??");
+            return "Missing Wondrous Tails book. Fix me.";
+        }
+        var dutyList = GetWTDutyList(excludeCompleted, out int numNeeded);
+
+        if (reducedText)
+        {
+            dutyList = dutyList.Select(ReduceWTDutyName).ToList();
+        }
+        if (listNumNeeded)
+        {
+            dutyList.Add("need {numNeeded}");
+        }
+        return string.Join(separator, dutyList);
     }
 
     private void DrawUI() => WindowSystem.Draw();

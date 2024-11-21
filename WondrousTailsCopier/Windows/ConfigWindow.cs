@@ -26,19 +26,6 @@ public class ConfigWindow : Window, IDisposable
 
     public void Dispose() { }
 
-    public override void PreDraw()
-    {
-        // Flags must be added or removed before Draw() is being called, or they won't apply
-        if (Configuration.IsConfigWindowMovable)
-        {
-            Flags &= ~ImGuiWindowFlags.NoMove;
-        }
-        else
-        {
-            Flags |= ImGuiWindowFlags.NoMove;
-        }
-    }
-
     public override void Draw()
     {
         /*
@@ -57,6 +44,13 @@ public class ConfigWindow : Window, IDisposable
             Configuration.Save();
         }
         */
+
+        var autoResizeBookClubValue = Configuration.AutoResizeBookClubBool;
+        if (ImGui.Checkbox("Auto-resize Book Club Window", ref autoResizeBookClubValue))
+        {
+            Configuration.AutoResizeBookClubBool = autoResizeBookClubValue;
+            Configuration.Save();
+        }
 
         var reducedTextValue = Configuration.ReducedTextBool;
         if (ImGui.Checkbox("Use Reduced Text", ref reducedTextValue))

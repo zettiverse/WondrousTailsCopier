@@ -7,6 +7,8 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Game;
 using Dalamud.Game.Command;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.IoC;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
@@ -18,6 +20,9 @@ using ImGuiNET;
 using Lumina.Excel.Sheets;
 using WondrousTailsCopier.Windows;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
+using Dalamud.Game.Text;
+using static FFXIVClientStructs.FFXIV.Client.Game.UI.PublicInstance;
+using static FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentLookingForGroup;
 
 namespace WondrousTailsCopier;
 
@@ -31,13 +36,19 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] public static IClientState ClientState { get; private set; } = null!;
 
     private const string CommandName = "/wtc";
-
     public Configuration Configuration { get; init; }
 
     public readonly WindowSystem WindowSystem = new("WondrousTailsCopier");
     private ComparisonWindow ComparisonWindow { get; init; }
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
+
+    public string TesterString = "TBD";
+    public bool ChatListenerEnabled = false;
+    public string ChatListenerUser = "";
+    public string ChatListenerMessage = "";
+    public bool ChatListenerNewMessage = false;
+    public int ChatListenerLimit = -1;
 
     public Plugin()
     {
@@ -68,6 +79,8 @@ public sealed class Plugin : IDalamudPlugin
 
         // Adds another button that is doing the same but for the main ui of the plugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
+
+        Chat.ChatMessage += Chat_OnChatMessage;
     }
 
     public void Dispose()
@@ -78,6 +91,7 @@ public sealed class Plugin : IDalamudPlugin
         MainWindow.Dispose();
 
         CommandManager.RemoveHandler(CommandName);
+        Chat.ChatMessage -= Chat_OnChatMessage;
     }
 
     private void OnCommand(string command, string args)
@@ -99,12 +113,62 @@ public sealed class Plugin : IDalamudPlugin
         {
             ToggleComparisonUI();
         }
+        else if (args.StartsWith("bl"))
+        {
+            ChatListenerEnabled = true;
+            var pattern = @"^bl (\d+)$";
+            var r = new Regex(pattern);
+            var m = r.Match(args);
+            if (m.Success)
+            {
+                ChatListenerLimit = int.Parse(m.Groups[1].Value);
+            }
+            ComparisonWindow.IsOpen = true;
+            Chat.Print("Listening for books...");
+        }
         else
         {
             ToggleMainUI();
         }
     }
+    private void Chat_OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+    {      
+        if (!ChatListenerEnabled)
+        {
+            return;
+        }
+        else
+        {
+            //TesterString = $"({sender.ToString()}) {message.TextValue}";
 
+            var pattern = @", need (\d)$";
+            var r = new Regex(pattern);
+            var m = r.Match(message.TextValue);
+            if (!m.Success)
+            {
+                return;
+            }
+
+            // From https://github.com/Haplo064/ChatBubbles/blob/main/ChatBubbles/OnChat.cs#L29
+            List<char> toRemove = new()
+            {
+                //src: https://na.finalfantasyxiv.com/lodestone/character/10080203/blog/2891974/
+                '','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',
+            };
+
+            var sanitizedSender = sender.ToString();
+            ChatListenerMessage = message.TextValue;
+
+
+            foreach (var c in toRemove)
+            {
+                // Removes all special characters related to Party List numbering
+                sanitizedSender = sanitizedSender.Replace(c.ToString(), string.Empty);
+            }
+            ChatListenerUser = sanitizedSender;
+            ChatListenerNewMessage = true;
+        }
+    }
     private unsafe List<string> GetWTDutyList(bool excludeCompleted, out int numNeeded)
     {
         List<string> dutyList = [];

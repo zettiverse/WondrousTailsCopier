@@ -11,7 +11,7 @@ public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; } = 0;
 
-    public bool IsConfigWindowMovable { get; set; } = true;
+    public bool AutoResizeBookClubBool { get; set; } = true;
     public bool SomePropertyToBeSavedAndWithADefault { get; set; } = true;
     public bool ListNumNeededBool { get; set; } = true;
     public bool ExcludeCompletedBool { get; set; } = true;

@@ -21,7 +21,7 @@ public class MainWindow : Window, IDisposable
     // So that the user will see "My Amazing Window" as window title,
     // but for ImGui the ID is "My Amazing Window##With a hidden ID"
     public MainWindow(Plugin plugin)
-        : base("Wondrous Tails Copier##HiddenID", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+        : base("Wondrous Tails Copier###MainWindow", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
         SizeConstraints = new WindowSizeConstraints
         {
@@ -55,27 +55,16 @@ public class MainWindow : Window, IDisposable
             ImGui.Text(Plugin.GetWTNames("\n"));
             ImGui.Spacing();
 
-            if (ImGui.Checkbox("Use Reduced Text", ref reducedTextValue))
-            {
-                Configuration.ReducedTextBool = reducedTextValue;
-                Configuration.Save();
-                Redraw();
-            }
-            if (ImGui.Checkbox("Exclude Completed Objectives", ref excludeCompletedValue))
-            {
-                Configuration.ExcludeCompletedBool = excludeCompletedValue;
-                Configuration.Save();
-                Redraw();
-            }
-            if (ImGui.Checkbox("List Number of Objectives Needed", ref numNeededValue))
-            {
-                Configuration.ListNumNeededBool = numNeededValue;
-                Configuration.Save();
-            }
             if (ImGui.Button("Copy to Clipboard"))
             {
                 Plugin.ToClipboard(", ");
             }
+            ImGui.SameLine();
+            if (ImGui.Button("Config Options"))
+            {
+                Plugin.ToggleConfigUI();
+            }
+            ImGui.SameLine();
             if (ImGui.Button("Book Club!"))
             {
                 Plugin.ToggleComparisonUI();
@@ -83,6 +72,11 @@ public class MainWindow : Window, IDisposable
         }
         else
         {
+            if (ImGui.Button("Config Options"))
+            {
+                Plugin.ToggleConfigUI();
+            }
+            ImGui.SameLine();
             ImGui.Text("Get a Book!");
             if (ImGui.Button("Book Club!"))
             {

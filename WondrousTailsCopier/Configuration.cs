@@ -11,7 +11,6 @@ public class Configuration : IPluginConfiguration
 {
     public int Version { get; set; } = 0;
 
-    public string Tester { get; set; } = "";
     public bool IsConfigWindowMovable { get; set; } = true;
     public bool SomePropertyToBeSavedAndWithADefault { get; set; } = true;
     public bool ListNumNeededBool { get; set; } = true;

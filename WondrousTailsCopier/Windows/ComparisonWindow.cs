@@ -34,12 +34,12 @@ public class ComparisonWindow : Window, IDisposable
     // We give this window a constant ID using ###
     // This allows for labels being dynamic, like "{FPS Counter}fps###XYZ counter window",
     // and the window ID will always be "###XYZ counter window" for ImGui
-    public ComparisonWindow(Plugin plugin) : base("Wondrous Tails Book Club###With a constant ID", 
+    public ComparisonWindow(Plugin plugin) : base("Wondrous Tails Book Club###ComparisonWindow", 
         ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(400, 500),
+            MinimumSize = new Vector2(550, 500),
             MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
         };
 
@@ -519,7 +519,6 @@ public class ComparisonWindow : Window, IDisposable
     public override void Draw()
     {
         var allBooks = Configuration.AllBooks;
-        var testerValue = Configuration.Tester;
 
         if (ImGui.Button("Import From Clipboard"))
         {

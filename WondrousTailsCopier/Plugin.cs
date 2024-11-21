@@ -36,6 +36,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public readonly WindowSystem WindowSystem = new("WondrousTailsCopier");
     private ComparisonWindow ComparisonWindow { get; init; }
+    private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
 
     public Plugin()
@@ -46,9 +47,11 @@ public sealed class Plugin : IDalamudPlugin
         // var goatImagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
 
         ComparisonWindow = new ComparisonWindow(this);
+        ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this);
 
         WindowSystem.AddWindow(ComparisonWindow);
+        WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
@@ -61,7 +64,7 @@ public sealed class Plugin : IDalamudPlugin
 
         // This adds a button to the plugin installer entry of this plugin which allows
         // to toggle the display status of the configuration ui
-        // PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
+        PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
 
         // Adds another button that is doing the same but for the main ui of the plugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
@@ -94,7 +97,6 @@ public sealed class Plugin : IDalamudPlugin
         }
         else
         {
-            //OhGod();
             ToggleMainUI();
         }
     }
@@ -189,6 +191,13 @@ public sealed class Plugin : IDalamudPlugin
             var m = r.Match(dutyLocation);
             dutyLocation = m.Groups[1].Value;
         }
+        else if (dutyLocation.Contains("Circles"))
+        {
+            var pattern = @"^A.*s: (\w+ Circles)";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            dutyLocation = $"{m.Groups[1].Value}";
+        }
         else if (dutyLocation.Contains("-heavyweight"))
         {
             var pattern = @"(AAC) \w+-heavyweight (.*)";
@@ -276,7 +285,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         if (listNumNeeded)
         {
-            dutyList.Add("need {numNeeded}");
+            dutyList.Add($"need {numNeeded}");
         }
         return string.Join(separator, dutyList);
     }
@@ -284,5 +293,6 @@ public sealed class Plugin : IDalamudPlugin
     private void DrawUI() => WindowSystem.Draw();
 
     public void ToggleComparisonUI() => ComparisonWindow.Toggle();
+    public void ToggleConfigUI() => ConfigWindow.Toggle();
     public void ToggleMainUI() => MainWindow.Toggle();
 }

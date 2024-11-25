@@ -19,8 +19,10 @@ using FFXIVClientStructs.FFXIV.Common.Lua;
 using ImGuiNET;
 using Lumina.Excel.Sheets;
 using static Dalamud.Interface.Utility.Raii.ImRaii;
+using static FFXIVClientStructs.FFXIV.Client.Game.Group.GroupManager;
 using static FFXIVClientStructs.FFXIV.Client.LayoutEngine.ILayoutInstance;
 using static FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentLookingForGroup;
+using static FFXIVClientStructs.FFXIV.Client.UI.RaptureAtkHistory.Delegates;
 
 namespace WondrousTailsCopier.Windows;
 
@@ -481,8 +483,8 @@ public class ComparisonWindow : Window, IDisposable
     {
         var allBooks = Configuration.AllBooks;
 
-        var pattern = @"(\[\d+:\d+\]\[\w+\d\]|\[\d+:\d+\]|\[\w+\d\])(\(\W?(\w+ \w+)\) |<\W?(\w+ \w+)> )((.*), need (\d))|((.*), need (\d))";
-        //var pattern = @"(\[\d+:\d+\]\[\w+\d\]|\[\d+:\d+\]|\[\w+\d\])(\(\W?(\w+ \w+)\) |<\W?(\w+ \w+)> )(.*), need (\d)|(.*), need (\d)";
+        var pattern = @"(?>\(|<)[^a-zA-Z]{0,2}(?'name'\w+ \w+)(?>\)|>) |(?>\(|<)[^a-zA-Z]{0,2}[A-Z]{3} (?'name'\w+ \w+)(?>\)|>) ";
+        //var pattern = @"(\[\d+:\d+\]\[\w+\d\]|\[\d+:\d+\]|\[\w+\d\])(\(\W?(\w+ \w+)\) |<\W?(\w+ \w+)> )((.*), need (\d))|((.*), need (\d))";
         
         //Plugin.Chat.Print(messageContents);
         var r = new Regex(pattern);
@@ -496,28 +498,36 @@ public class ComparisonWindow : Window, IDisposable
         
         if (m.Success)
         {
-            if (m.Groups[3].Value.Length == 0 && m.Groups[4].Value.Length == 0)
-            {
-                playerName = Plugin.GetLocalPlayerName();
-                playerObjectives = m.Groups[8].Value;
-                playerNeeded = int.Parse(m.Groups[10].Value);
-                //playerNeeded = int.Parse(m.Groups[8].Value);
-            }
-            else
-            {
-                if (m.Groups[3].Value.Length == 0)
-                {
-                    playerName = m.Groups[4].Value;
-                }
-                else
-                {
-                    playerName = m.Groups[3].Value;
-                }
+            //foreach (string groupName in r.GetGroupNames())
+            //{
+            //    Plugin.Chat.Print($"Group: {groupName}, Value: {m.Groups[groupName].Value}");
+            //}
 
-                playerObjectives = m.Groups[5].Value;
-                playerNeeded = int.Parse(m.Groups[7].Value);
-                //playerNeeded = int.Parse(m.Groups[6].Value);
-            }
+            playerName = m.Groups["name"].Value;
+
+            messageContents = messageContents.Substring(messageContents.IndexOf(playerName) + playerName.Length + 2);
+        }
+        else
+        {
+            playerName = Plugin.GetLocalPlayerName();
+        }
+
+        //Plugin.Chat.Print(playerName);
+
+        pattern = @"(?'objectives'.*), need (?'numNeeded'\d)";
+
+        r = new Regex(pattern);
+        m = r.Match(messageContents);
+
+        if (m.Success)
+        {
+            //foreach (string groupName in r.GetGroupNames())
+            //{
+            //    Plugin.Chat.Print($"Group: {groupName}, Value: {m.Groups[groupName].Value}");
+            //}
+
+            playerObjectives = m.Groups["objectives"].Value;
+            playerNeeded = int.Parse(m.Groups["numNeeded"].Value);
 
 
             for (var i = 0; i < allBooks.Count; i++)
@@ -535,7 +545,7 @@ public class ComparisonWindow : Window, IDisposable
             }
             else
             {
-                allBooks.Add(new Dictionary<string, (string, int)> {{ playerName, (playerObjectives, playerNeeded) } });
+                allBooks.Add(new Dictionary<string, (string, int)> { { playerName, (playerObjectives, playerNeeded) } });
             }
 
             Configuration.AllBooks = allBooks;
@@ -543,10 +553,8 @@ public class ComparisonWindow : Window, IDisposable
 
             return true;
         }
-        else
-        {
-            return false;
-        }
+
+        return false;
     }
 
     public override void Draw()

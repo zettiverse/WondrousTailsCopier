@@ -73,12 +73,12 @@ public class MainWindow : Window, IDisposable
         }
         else
         {
+            ImGui.Text("Get a Book!");
             if (ImGui.Button("Config Options"))
             {
                 Plugin.ToggleConfigUI();
             }
             ImGui.SameLine();
-            ImGui.Text("Get a Book!");
             if (ImGui.Button("Book Club!"))
             {
                 Plugin.ToggleComparisonUI();

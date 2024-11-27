@@ -176,7 +176,7 @@ public class ComparisonWindow : Window, IDisposable
         {
             thickness = 1.5f;
         }
-
+        
         for (var i = 0; i < count; i++)
         {
             min.Y += increments;
@@ -244,10 +244,22 @@ public class ComparisonWindow : Window, IDisposable
         }
         Configuration.Save();
     }
+    private bool ButtonWrapToNext(Vector2 lastButtonMin, Vector2 lastButtonMax, Vector2 nextWordSize)
+    {
+        if (ImGui.GetContentRegionAvail().X > (lastButtonMax.X - lastButtonMin.X) + nextWordSize.X)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
     private void DisplayObjectives(List<Dictionary<string, string>> categorizedObjectives)
     {
         var allBooks = Configuration.AllBooks;
         var completedObjectives = Configuration.CompletedObjectives;
+        var ignoredObjectives = new List<string>();
 
         for (var i = 0; i < allBooks.Count; i++)
         {
@@ -310,21 +322,18 @@ public class ComparisonWindow : Window, IDisposable
 
             foreach (var objective in sortedObjectiveDict)
             {
-                // Calculate if we need to wrap the button to next line or keep on the same
+                // If on ignore list, continue to next
+                if (Configuration.IgnoredObjectives.Contains(objective.Key))
+                {
+                    ignoredObjectives.Add(objective.Key);
+                    continue;
+                }
 
+                // Calculate if we need to wrap the button to next line or keep on the same
                 var lastButtonMin = ImGui.GetItemRectMin();
                 var lastButtonMax = ImGui.GetItemRectMax();
                 var nextWordSize = ImGui.CalcTextSize(objective.Key);
-                var wrapToNext = false;
-
-                if (ImGui.GetContentRegionAvail().X > (lastButtonMax.X - lastButtonMin.X) + nextWordSize.X)
-                {
-                    wrapToNext = false;
-                }
-                else
-                {
-                    wrapToNext = true;
-                }
+                var wrapToNext = ButtonWrapToNext(lastButtonMax, lastButtonMax, nextWordSize);
 
                 var ids = objective.Value.Split(',');
 
@@ -360,7 +369,15 @@ public class ComparisonWindow : Window, IDisposable
 
                     DrawLines(lineMin, lineMax, timesCompleted);
                 }
-                //ImGui.PopID();
+
+                if (Configuration.PreferredObjectives.Contains(objective.Key))
+                {
+                    var circleMin = ImGui.GetItemRectMin();
+                    var circleMax = ImGui.GetItemRectMax();
+                    circleMin.X = circleMax.X;
+
+                    ImGui.GetWindowDrawList().AddCircleFilled(circleMin, 3.5f, 0xFF00F2FF);
+                }
 
                 if (!wrapToNext || Configuration.AutoResizeBookClubBool)
                 {
@@ -370,6 +387,42 @@ public class ComparisonWindow : Window, IDisposable
             }
             ImGui.Text(" ");
             ImGui.Text(" ");
+        }
+
+        if (ImGui.Button("See Preferred Objectives List"))
+        {
+            Plugin.TogglePreferredUI();
+        }
+        ImGui.SameLine();
+        if (ignoredObjectives.Count > 0)
+        {
+            if (ImGui.Button($"{ignoredObjectives.Count} objective{(ignoredObjectives.Count > 1 ? "s are" : " is")} hidden and ignored."))
+            {
+                Configuration.ShowIgnoredBool = !Configuration.ShowIgnoredBool;
+                Configuration.Save();
+            }
+            if (Configuration.ShowIgnoredBool)
+            {
+                foreach (var objective in ignoredObjectives)
+                {
+                    var lastButtonMin = ImGui.GetItemRectMin();
+                    var lastButtonMax = ImGui.GetItemRectMax();
+                    var nextWordSize = ImGui.CalcTextSize(objective);
+                    var wrapToNext = ButtonWrapToNext(lastButtonMax, lastButtonMax, nextWordSize);
+
+                    if (ImGui.Button(objective))
+                    {
+                        Configuration.IgnoredObjectives.Remove(objective);
+                        Configuration.Save();
+                    }
+                    if (!wrapToNext || Configuration.AutoResizeBookClubBool)
+                    {
+                        ImGui.SameLine();
+                    }
+                }
+                ImGui.TextUnformatted(" ");
+                ImGui.TextUnformatted("Click to un-ignore.");
+            }
         }
     }
     private void OrganizeObjectives()

@@ -7,6 +7,7 @@ namespace WondrousTailsCopier.Windows;
 
 public class ConfigWindow : Window, IDisposable
 {
+    private Plugin Plugin;
     private Configuration Configuration;
 
     // We give this window a constant ID using ###
@@ -21,6 +22,7 @@ public class ConfigWindow : Window, IDisposable
             MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
         };
 
+        Plugin = plugin;
         Configuration = plugin.Configuration;
     }
 
@@ -57,6 +59,7 @@ public class ConfigWindow : Window, IDisposable
         {
             Configuration.ReducedTextBool = reducedTextValue;
             Configuration.Save();
+            Plugin.RecalculatePreferred();
         }
 
         var excludeCompletedValue = Configuration.ExcludeCompletedBool;
@@ -71,6 +74,11 @@ public class ConfigWindow : Window, IDisposable
         {
             Configuration.ListNumNeededBool = ListNumNeededValue;
             Configuration.Save();
+        }
+
+        if (ImGui.Button("Open Preferred Objectives Window"))
+        {
+            Plugin.TogglePreferredUI();
         }
     }
 }

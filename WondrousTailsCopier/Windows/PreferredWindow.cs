@@ -30,7 +30,7 @@ public class PreferredWindow : Window, IDisposable
 {
     private Plugin Plugin;
     private Configuration Configuration;
-    private List<string> allPossible;
+    public List<string> allPossible;
 
     // We give this window a constant ID using ###
     // This allows for labels being dynamic, like "{FPS Counter}fps###XYZ counter window",
@@ -47,48 +47,99 @@ public class PreferredWindow : Window, IDisposable
         Configuration = plugin.Configuration;
         allPossible = AllPossible();
     }
-    private List<string> AllPossible()
+    private string PadNumbers(string input)
+    {
+        return Regex.Replace(input, "^[0-9]+", match => match.Value.PadLeft(10, '0'));
+    }
+    public List<string> AllPossible()
     {
         // Row IDs
         // 4 = Trials
         // 5 = Normal and Alliance Raids
         List<string> allPossible = new List<string>();
-        var territories = Plugin.DataManager.GetExcelSheet<ContentFinderCondition>()!
+        List<string> allWTObjectives = new List<string>();
+        var trials = Plugin.DataManager.GetExcelSheet<ContentFinderCondition>()!
             .Where(r => r.ContentType.Value.RowId == 4)
             .Select(r => r.TerritoryType.Value)
             .ToHashSet();
 
-        foreach (var territory in territories)
+        var wtObjectives = Plugin.DataManager.GetExcelSheet<WeeklyBingoOrderData>()!
+        .Select(r => r.Text.Value.Description.ToString())
+        .ToHashSet();
+
+        foreach (var trial in trials)
         {
             var addThis = false;
-            var location = territory.ContentFinderCondition.Value.Name.ToString();
+            var location = trial.ContentFinderCondition.Value.Name.ToString();
 
-            if (location.Contains("Extreme"))
+            if (Configuration.ReducedTextBool)
             {
-                var pattern = @"(?:the )?(.*) \(Extreme\)";
-                var r = new Regex(pattern);
-                var m = r.Match(location);
-                location = m.Groups[1].Value;
-                if (location.Contains("Containment Bay"))
+                var reducedLocation = Plugin.ReduceWTDutyName(location);
+                if (!location.Equals(reducedLocation))
                 {
-                    var splitCB = location.Split(' ');
-                    location = splitCB[2];
+                    addThis = true;
+                    location = reducedLocation;
                 }
-                addThis = true;
             }
-            else if (location.Contains("Minstrel's Ballad"))
+            else
             {
-                var pattern = @"the Minstrel's Ballad: (.*)";
-                var r = new Regex(pattern);
-                var m = r.Match(location);
-                location = m.Groups[1].Value;
-                addThis = true;
+                if (location.Contains("Extreme"))
+                {
+                    var pattern = @"(?:the )?(.*) \(Extreme\)";
+                    var r = new Regex(pattern);
+                    var m = r.Match(location);
+                    addThis = true;
+                }
+                else if (location.Contains("Minstrel's Ballad"))
+                {
+                    var pattern = @"the Minstrel's Ballad: (.*)";
+                    var r = new Regex(pattern);
+                    var m = r.Match(location);
+                    addThis = true;
+                }
             }
             if (addThis)
             {
                 allPossible.Add(location);
             }
         }
+
+        foreach (var objective in wtObjectives)
+        {
+            if (objective.Equals("Dammies") || (objective.Contains("Dungeons")  && !objective.StartsWith("Dungeons")) ||
+                objective.Length == 0 || allPossible.Contains(objective) || allPossible.Contains(Plugin.ReduceWTDutyName(objective)))
+            {
+                continue;
+            }
+
+            var addThis = false;
+            var theObjective = objective;
+
+            if (Configuration.ReducedTextBool)
+            {
+                var reducedObjective = Plugin.ReduceWTDutyName(theObjective);
+                if (!objective.Equals(reducedObjective) || 
+                    reducedObjective.Contains("Alexander") || reducedObjective.Contains("Omega") || 
+                    reducedObjective.Contains("Eden") || reducedObjective.Contains("Treasure Dungeon") || 
+                    reducedObjective.Contains("Deep Dungeon"))
+                {
+                    addThis = true;
+                    theObjective = reducedObjective;
+                }
+            }
+            else
+            {
+                addThis = true;
+            }
+            if (addThis)
+            {
+                allWTObjectives.Add(theObjective);
+                
+            }
+        }
+
+        allWTObjectives =  allWTObjectives.OrderBy(q => PadNumbers(q)).ToList();
+        allPossible.AddRange(allWTObjectives);
 
         return allPossible;
     }
@@ -98,12 +149,15 @@ public class PreferredWindow : Window, IDisposable
     {
         foreach (var objective in allPossible)
         {
+            if (objective.Length  == 0)
+            {
+                continue;
+            }
             var isPreferred = Configuration.PreferredObjectives.Contains(objective);
             var isIgnored = Configuration.IgnoredObjectives.Contains(objective);
 
             var preferredPrefix = "";
             var ignoredPrefix = "";
-
 
             if (isPreferred)
             {
@@ -117,7 +171,8 @@ public class PreferredWindow : Window, IDisposable
 
             ImGui.TextUnformatted(objective);
             ImGui.SameLine();
-            if (ImGui.Button($"{preferredPrefix}Prefer###{objective}"))
+            ImGui.AlignTextToFramePadding();
+            if (ImGui.Button($"{preferredPrefix}Prefer##{objective}"))
             {
                 if (isPreferred)
                 {
@@ -127,11 +182,12 @@ public class PreferredWindow : Window, IDisposable
                 else
                 {
                     Configuration.PreferredObjectives.Add(objective);
+                    Configuration.IgnoredObjectives.Remove(objective);
                     Configuration.Save();
                 }
             }
             ImGui.SameLine();
-            if (ImGui.Button($"{ignoredPrefix}Ignore###{objective}"))
+            if (ImGui.Button($"{ignoredPrefix}Ignore##{objective}"))
             {
                 if (isIgnored)
                 {
@@ -141,11 +197,12 @@ public class PreferredWindow : Window, IDisposable
                 else
                 {
                     Configuration.IgnoredObjectives.Add(objective);
+                    Configuration.PreferredObjectives.Remove(objective);
                     Configuration.Save();
                 }
             }
             ImGui.SameLine();
-            if (ImGui.Button($"Reset###{objective}"))
+            if (ImGui.Button($"Reset##{objective}"))
             {
                 Configuration.PreferredObjectives.Remove(objective);
                 Configuration.IgnoredObjectives.Remove(objective);

@@ -59,6 +59,7 @@ public class ConfigWindow : Window, IDisposable
         {
             Configuration.ReducedTextBool = reducedTextValue;
             Configuration.Save();
+            Plugin.RecalculatePreferred();
         }
 
         var excludeCompletedValue = Configuration.ExcludeCompletedBool;

@@ -244,6 +244,17 @@ public class ComparisonWindow : Window, IDisposable
         }
         Configuration.Save();
     }
+    private bool ButtonWrapToNext(Vector2 lastButtonMin, Vector2 lastButtonMax, Vector2 nextWordSize)
+    {
+        if (ImGui.GetContentRegionAvail().X > (lastButtonMax.X - lastButtonMin.X) + nextWordSize.X)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
     private void DisplayObjectives(List<Dictionary<string, string>> categorizedObjectives)
     {
         var allBooks = Configuration.AllBooks;
@@ -322,16 +333,7 @@ public class ComparisonWindow : Window, IDisposable
                 var lastButtonMin = ImGui.GetItemRectMin();
                 var lastButtonMax = ImGui.GetItemRectMax();
                 var nextWordSize = ImGui.CalcTextSize(objective.Key);
-                var wrapToNext = false;
-
-                if (ImGui.GetContentRegionAvail().X > (lastButtonMax.X - lastButtonMin.X) + nextWordSize.X)
-                {
-                    wrapToNext = false;
-                }
-                else
-                {
-                    wrapToNext = true;
-                }
+                var wrapToNext = ButtonWrapToNext(lastButtonMax, lastButtonMax, nextWordSize);
 
                 var ids = objective.Value.Split(',');
 
@@ -374,7 +376,7 @@ public class ComparisonWindow : Window, IDisposable
                     var circleMax = ImGui.GetItemRectMax();
                     circleMin.X = circleMax.X;
 
-                    ImGui.GetWindowDrawList().AddCircleFilled(circleMin, 1.0f, 0xFF00F2FF);
+                    ImGui.GetWindowDrawList().AddCircleFilled(circleMin, 3.5f, 0xFF00F2FF);
                 }
 
                 if (!wrapToNext || Configuration.AutoResizeBookClubBool)
@@ -387,15 +389,39 @@ public class ComparisonWindow : Window, IDisposable
             ImGui.Text(" ");
         }
 
+        if (ImGui.Button("See Preferred Objectives List"))
+        {
+            Plugin.TogglePreferredUI();
+        }
+        ImGui.SameLine();
         if (ignoredObjectives.Count > 0)
         {
-            if (ImGui.Button($"{ignoredObjectives.Count} objectives are hidden and ignored."))
+            if (ImGui.Button($"{ignoredObjectives.Count} objective{(ignoredObjectives.Count > 1 ? "s are" : " is")} hidden and ignored."))
+            {
+                Configuration.ShowIgnoredBool = !Configuration.ShowIgnoredBool;
+                Configuration.Save();
+            }
+            if (Configuration.ShowIgnoredBool)
             {
                 foreach (var objective in ignoredObjectives)
                 {
-                    ImGui.TextUnformatted(objective);
-                    ImGui.SameLine();
+                    var lastButtonMin = ImGui.GetItemRectMin();
+                    var lastButtonMax = ImGui.GetItemRectMax();
+                    var nextWordSize = ImGui.CalcTextSize(objective);
+                    var wrapToNext = ButtonWrapToNext(lastButtonMax, lastButtonMax, nextWordSize);
+
+                    if (ImGui.Button(objective))
+                    {
+                        Configuration.IgnoredObjectives.Remove(objective);
+                        Configuration.Save();
+                    }
+                    if (!wrapToNext || Configuration.AutoResizeBookClubBool)
+                    {
+                        ImGui.SameLine();
+                    }
                 }
+                ImGui.TextUnformatted(" ");
+                ImGui.TextUnformatted("Click to un-ignore.");
             }
         }
     }

@@ -21,6 +21,8 @@ public class Configuration : IPluginConfiguration
     public Dictionary<string, int> CompletedObjectives { get; set; } = [];
     public List<string> PreferredObjectives { get; set; } = [];
     public List<string> IgnoredObjectives { get; set; } = [];
+    public bool ShowIgnoredBool { get; set; } = false;
+
 
     // the below exist just to make saving less cumbersome
     public void Save()

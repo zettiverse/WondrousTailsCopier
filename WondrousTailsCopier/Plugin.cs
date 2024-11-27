@@ -142,14 +142,14 @@ public sealed class Plugin : IDalamudPlugin
     private void TestFunc()
     {
         List<string> trials = new List<string>();
-        var territories = DataManager.GetExcelSheet<ContentFinderCondition>()!
-            .Where(r => r.ContentType.Value.RowId == 4 || r.ContentType.Value.RowId == 5) // 4, 5
-            .Select(r => r.TerritoryType.Value)
+        var territories = DataManager.GetExcelSheet<WeeklyBingoOrderData>()!
+            //.Where(r => r.RowId <= 16)
+            .Select(r => r.Text.Value.Description.ToString())
             .ToHashSet();
 
         foreach (var territory in territories)
         {
-            Chat.Print(territory.ContentFinderCondition.Value.Name.ToString());
+            Chat.Print(territory);
         }
     }
     private void Chat_OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
@@ -235,7 +235,7 @@ public sealed class Plugin : IDalamudPlugin
         return dutyList;
     }
 
-    private string ReduceWTDutyName(string dutyLocation)
+    public string ReduceWTDutyName(string dutyLocation)
     {
         if (dutyLocation.Contains("Dungeons "))
         {
@@ -246,31 +246,98 @@ public sealed class Plugin : IDalamudPlugin
         }
         else if (dutyLocation.Contains("Alliance Raids"))
         {
-            if (dutyLocation.Contains("A Realm Reborn"))
+            var pattern = @"Lv\. (\d+)-(\d+)";
+            var r = new Regex(pattern);
+            var m = r.Match(dutyLocation);
+            //dutyLocation = "";
+
+            if (m.Success)
             {
-                dutyLocation = "ARR";
+                var lowerLevel = int.Parse(m.Groups[1].Value);
+                var higherLevel = int.Parse(m.Groups[2].Value);
+
+                var lowerAR = "";
+                var higherAR = "";
+
+                if (lowerLevel == 50)
+                {
+                    lowerAR = "ARR";
+                }
+                else if (lowerLevel == 60)
+                {
+                    lowerAR = "HW";
+                }
+                else if (lowerLevel == 70)
+                {
+                    lowerAR = "StB";
+                }
+                else if (lowerLevel == 80)
+                {
+                    lowerAR = "ShB";
+                }
+                else if (lowerLevel == 90)
+                {
+                    lowerAR = "EW";
+                }
+                else if (lowerLevel == 100)
+                {
+                    lowerAR = "DT";
+                }
+
+                if (higherLevel == 50)
+                {
+                    higherAR = "ARR";
+                }
+                else if (higherLevel == 60)
+                {
+                    higherAR = "HW";
+                }
+                else if (higherLevel == 70)
+                {
+                    higherAR = "StB";
+                }
+                else if (higherLevel == 80)
+                {
+                    higherAR = "ShB";
+                }
+                else if (higherLevel == 90)
+                {
+                    higherAR = "EW";
+                }
+                else if (higherLevel == 100)
+                {
+                    higherAR = "DT";
+                }
+                dutyLocation = $"{lowerAR}-{higherAR} ARs";
             }
-            else if (dutyLocation.Contains("Heavensward"))
+            else
             {
-                dutyLocation = "HW";
+                if (dutyLocation.Contains("A Realm Reborn"))
+                {
+                    dutyLocation = "ARR";
+                }
+                else if (dutyLocation.Contains("Heavensward"))
+                {
+                    dutyLocation = "HW";
+                }
+                else if (dutyLocation.Contains("Stormblood"))
+                {
+                    dutyLocation = "StB";
+                }
+                else if (dutyLocation.Contains("Shadowbringers"))
+                {
+                    dutyLocation = "ShB";
+                }
+                else if (dutyLocation.Contains("Endwalker"))
+                {
+                    dutyLocation = "EW";
+                }
+                else if (dutyLocation.Contains("Dawntrail"))
+                {
+                    dutyLocation = "DT";
+                }
+                dutyLocation += " AR";
             }
-            else if (dutyLocation.Contains("Stormblood"))
-            {
-                dutyLocation = "StB";
-            }
-            else if (dutyLocation.Contains("Shadowbringers"))
-            {
-                dutyLocation = "ShB";
-            }
-            else if (dutyLocation.Contains("Endwalker"))
-            {
-                dutyLocation = "EW";
-            }
-            else if (dutyLocation.Contains("Dawntrail"))
-            {
-                dutyLocation = "DT";
-            }
-            dutyLocation += " AR";
         }
         else if (dutyLocation.Contains("of Bahamut"))
         {
@@ -381,6 +448,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void DrawUI() => WindowSystem.Draw();
 
+    public void RecalculatePreferred() => PreferredWindow.allPossible = PreferredWindow.AllPossible();
     public void TogglePreferredUI() => PreferredWindow.Toggle();
     public void ToggleComparisonUI() => ComparisonWindow.Toggle();
     public void ToggleConfigUI() => ConfigWindow.Toggle();

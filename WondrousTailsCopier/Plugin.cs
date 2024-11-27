@@ -39,6 +39,7 @@ public sealed class Plugin : IDalamudPlugin
     public Configuration Configuration { get; init; }
 
     public readonly WindowSystem WindowSystem = new("WondrousTailsCopier");
+    private PreferredWindow PreferredWindow { get; init; }
     private ComparisonWindow ComparisonWindow { get; init; }
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
@@ -57,6 +58,7 @@ public sealed class Plugin : IDalamudPlugin
         // you might normally want to embed resources and load them from the manifest stream
         // var goatImagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
 
+        PreferredWindow = new PreferredWindow(this);
         ComparisonWindow = new ComparisonWindow(this);
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this);
@@ -126,9 +128,27 @@ public sealed class Plugin : IDalamudPlugin
             ComparisonWindow.IsOpen = true;
             Chat.Print("Listening for books...");
         }
+        else if (args == "preferred")
+        {
+            TogglePreferredUI();
+        }
         else
         {
+            //TestFunc();
             ToggleMainUI();
+        }
+    }
+    private void TestFunc()
+    {
+        List<string> trials = new List<string>();
+        var territories = DataManager.GetExcelSheet<ContentFinderCondition>()!
+            .Where(r => r.ContentType.Value.RowId == 4 || r.ContentType.Value.RowId == 5) // 4, 5
+            .Select(r => r.TerritoryType.Value)
+            .ToHashSet();
+
+        foreach (var territory in territories)
+        {
+            Chat.Print(territory.ContentFinderCondition.Value.Name.ToString());
         }
     }
     private void Chat_OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
@@ -360,6 +380,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void DrawUI() => WindowSystem.Draw();
 
+    public void TogglePreferredUI() => PreferredWindow.Toggle();
     public void ToggleComparisonUI() => ComparisonWindow.Toggle();
     public void ToggleConfigUI() => ConfigWindow.Toggle();
     public void ToggleMainUI() => MainWindow.Toggle();

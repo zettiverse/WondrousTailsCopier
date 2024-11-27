@@ -176,7 +176,7 @@ public class ComparisonWindow : Window, IDisposable
         {
             thickness = 1.5f;
         }
-
+        
         for (var i = 0; i < count; i++)
         {
             min.Y += increments;
@@ -248,6 +248,7 @@ public class ComparisonWindow : Window, IDisposable
     {
         var allBooks = Configuration.AllBooks;
         var completedObjectives = Configuration.CompletedObjectives;
+        var ignoredObjectives = new List<string>();
 
         for (var i = 0; i < allBooks.Count; i++)
         {
@@ -310,8 +311,14 @@ public class ComparisonWindow : Window, IDisposable
 
             foreach (var objective in sortedObjectiveDict)
             {
-                // Calculate if we need to wrap the button to next line or keep on the same
+                // If on ignore list, continue to next
+                if (Configuration.IgnoredObjectives.Contains(objective.Key))
+                {
+                    ignoredObjectives.Add(objective.Key);
+                    continue;
+                }
 
+                // Calculate if we need to wrap the button to next line or keep on the same
                 var lastButtonMin = ImGui.GetItemRectMin();
                 var lastButtonMax = ImGui.GetItemRectMax();
                 var nextWordSize = ImGui.CalcTextSize(objective.Key);
@@ -360,7 +367,15 @@ public class ComparisonWindow : Window, IDisposable
 
                     DrawLines(lineMin, lineMax, timesCompleted);
                 }
-                //ImGui.PopID();
+
+                if (Configuration.PreferredObjectives.Contains(objective.Key))
+                {
+                    var circleMin = ImGui.GetItemRectMin();
+                    var circleMax = ImGui.GetItemRectMax();
+                    circleMin.X = circleMax.X;
+
+                    ImGui.GetWindowDrawList().AddCircleFilled(circleMin, 1.0f, 0xFF00F2FF);
+                }
 
                 if (!wrapToNext || Configuration.AutoResizeBookClubBool)
                 {
@@ -370,6 +385,18 @@ public class ComparisonWindow : Window, IDisposable
             }
             ImGui.Text(" ");
             ImGui.Text(" ");
+        }
+
+        if (ignoredObjectives.Count > 0)
+        {
+            if (ImGui.Button($"{ignoredObjectives.Count} objectives are hidden and ignored."))
+            {
+                foreach (var objective in ignoredObjectives)
+                {
+                    ImGui.TextUnformatted(objective);
+                    ImGui.SameLine();
+                }
+            }
         }
     }
     private void OrganizeObjectives()

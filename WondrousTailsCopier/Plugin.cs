@@ -63,6 +63,7 @@ public sealed class Plugin : IDalamudPlugin
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this);
 
+        WindowSystem.AddWindow(PreferredWindow);
         WindowSystem.AddWindow(ComparisonWindow);
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);

@@ -86,7 +86,7 @@ public class PreferredWindow : Window, IDisposable
             }
             if (addThis)
             {
-                allPossible.Add(territory.ContentFinderCondition.Value.Name.ToString());
+                allPossible.Add(location);
             }
         }
 

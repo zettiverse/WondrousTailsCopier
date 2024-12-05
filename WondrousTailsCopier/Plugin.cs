@@ -349,7 +349,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         else if (dutyLocation.Contains("Circles"))
         {
-            var pattern = @"^A.*s: (\w+ Circles)";
+            var pattern = @"^A.*s: (.* Circles)";
             var r = new Regex(pattern);
             var m = r.Match(dutyLocation);
             dutyLocation = $"{m.Groups[1].Value}";

@@ -37,7 +37,7 @@ jobs:
           Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\dev\"
         
       - name: Build
-        run: msbuild WondrousTailsCopier.sln /p:Configuration=Release
+        run: msbuild WondrousTailsCopier.sln /p:Configuration=Release -verbosity:diag
 
       - uses: actions/checkout@v4
       - name: Bump version and push tag
@@ -72,5 +72,7 @@ jobs:
       - name: Rollback Release
         if: ${{ failure() }}
         uses: liudonghua123/delete-release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           release_name: Wondrous Tails Copier - ${{ steps.tag_version.outputs.new_tag }}

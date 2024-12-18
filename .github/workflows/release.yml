@@ -68,3 +68,9 @@ jobs:
           asset_path: ./WondrousTailsCopier/bin/x64/Release/WondrousTailsCopier/latest.zip
           asset_name: latest.zip
           asset_content_type: application/zip 
+
+      - name: Rollback Release
+        if: ${{ failure() }}
+        uses: liudonghua123/delete-release-action@v1
+        with:
+          release_name: Wondrous Tails Copier - ${{ steps.tag_version.outputs.new_tag }}

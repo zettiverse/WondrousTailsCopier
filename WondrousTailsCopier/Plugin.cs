@@ -239,10 +239,38 @@ public sealed class Plugin : IDalamudPlugin
     {
         if (dutyLocation.Contains("Dungeons "))
         {
+            var isHighLevelOnly = false;
+
             var pattern = @"Dungeons \(Lv\. (\d+-\d+|\d+)";
             var r = new Regex(pattern);
             var m = r.Match(dutyLocation);
+
             dutyLocation = m.Groups[1].Value;
+
+            if (dutyLocation.Contains('-'))
+            {
+                var levelRange = dutyLocation.Split("-");
+                var lowerLevel = int.Parse(levelRange[0]);
+                var higherLevel = int.Parse(levelRange[1]);
+
+                if (lowerLevel % 10 == 0 && higherLevel % 10 == 0)
+                {
+                    isHighLevelOnly = true;
+                }
+            }
+            else
+            {
+                if (int.Parse(dutyLocation) % 10 == 0)
+                {
+                    isHighLevelOnly = true;
+                }
+            }
+
+            if (isHighLevelOnly)
+            {
+                dutyLocation = dutyLocation.Replace("-", " or ");
+                dutyLocation += " Only";
+            }
         }
         else if (dutyLocation.Contains("Alliance Raids"))
         {

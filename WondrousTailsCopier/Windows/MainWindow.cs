@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Interface.Internal;
@@ -23,6 +24,8 @@ public class MainWindow : Window, IDisposable
     public MainWindow(Plugin plugin)
         : base("Wondrous Tails Copier###MainWindow", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
+        WindowName = $"Wondrous Tails Copier v{Assembly.GetExecutingAssembly().GetName().Version}###MainWindow";
+
         SizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = new Vector2(375, 500),

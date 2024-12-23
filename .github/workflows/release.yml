@@ -25,7 +25,7 @@ jobs:
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.2
         with:
-          prefix: v
+          #prefix: v
           github_token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup MSBuild
@@ -43,7 +43,7 @@ jobs:
           Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\dev\"
         
       - name: Build
-        run: msbuild WondrousTailsCopier.sln /p:Configuration=Release -verbosity:diag
+        run: msbuild WondrousTailsCopier.sln /p:Configuration=Release /property:Version=${{ steps.tag_version.outputs.new_tag }}
 
       - name: Create Release
         id: create_release
@@ -51,8 +51,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.tag_version.outputs.new_tag }}
-          release_name: Wondrous Tails Copier - ${{ steps.tag_version.outputs.new_tag }}
+          tag_name: v${{ steps.tag_version.outputs.new_tag }}
+          release_name: Wondrous Tails Copier - v${{ steps.tag_version.outputs.new_tag }}
           draft: false
           prerelease: false
 
@@ -74,3 +74,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           release_name: Wondrous Tails Copier - ${{ steps.tag_version.outputs.new_tag }}
+
+      - name: Repository Dispatch
+        if: ${{ success() }}
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT }}
+          repository: zettiverse/DalamudRepo
+          event-type: plugin-updated
+          client-payload: '{"repo_name": "${{ github.event.repository.name }}", "version": "${{ steps.tag_version.outputs.new_tag }}"}'

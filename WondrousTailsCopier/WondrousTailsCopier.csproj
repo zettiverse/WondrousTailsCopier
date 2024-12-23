@@ -3,7 +3,6 @@
   
 
     <PropertyGroup>
-        <Version></Version>
         <VersionFileName>$(BaseIntermediateOutputPath)VersionInfo.cs</VersionFileName>
         <Description>Copy your Wondrous Tails objectives to the clipboard!</Description>
         <PackageProjectUrl>https://github.com/zettiverse/WondrousTailsCopier</PackageProjectUrl>
